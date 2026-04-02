@@ -746,10 +746,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — CONFIGURACIÓN
      ────────────────────────────────────────────────────────────── */
-  var SUPABASE_URL      = 'https://sfgsyltgpwvjxqluxvbw.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZ3N5bHRncHd2anhxbHV4dmJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwOTY5MDIsImV4cCI6MjA5MDY3MjkwMn0.LD9w2MXpfiHsEhIGyZT1ZxQRe_KLV1yVXrgedThdFTE';
-  var ANTHROPIC_KEY     = localStorage.getItem('peludos_anthropic_key')||'';
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var SUPABASE_URL      = 'https://sfgsyltgpwvjxqluxvbw.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZ3N5bHRncHd2anhxbHV4dmJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwOTY5MDIsImV4cCI6MjA5MDY3MjkwMn0.LD9w2MXpfiHsEhIGyZT1ZxQRe_KLV1yVXrgedThdFTE';
+var PROXY_URL         = SUPABASE_URL + '/functions/v1/rapid-service';
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — ESTADO GLOBAL
@@ -1236,7 +1236,24 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   window.iaKeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendIAMessage();}};
   window.iaAutoResize=function(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';};
   window.clearIAChat=function(){IA_MESSAGES=[];renderIAContent();};
-  async function askClaude(userText){if(iaIsTyping)return;var pet=getPetById(curPetId);if(!pet)return;if(!ANTHROPIC_KEY||!ANTHROPIC_KEY.startsWith('sk-ant-')){appendIAMessage('assistant','⚠️ Configura tu API key de Anthropic en el Backoffice del operador.');return;}iaIsTyping=true;IA_MESSAGES.push({role:'user',content:userText});appendIAMessage('user',userText);showTypingIndicator();disableIAInput(true);try{var response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,system:buildSystemPrompt(pet),messages:IA_MESSAGES.map(function(m){return{role:m.role,content:m.content};})})});hideTypingIndicator();if(!response.ok){var errData=await response.json().catch(function(){return{};});appendIAMessage('assistant','❌ '+(errData.error&&errData.error.message?errData.error.message:'Error al conectar con la IA.'));iaIsTyping=false;disableIAInput(false);return;}var data=await response.json();var reply=data.content&&data.content[0]&&data.content[0].text?data.content[0].text:'No pude generar una respuesta.';IA_MESSAGES.push({role:'assistant',content:reply});appendIAMessage('assistant',reply);}catch(e){hideTypingIndicator();appendIAMessage('assistant','❌ Error de conexión.');}iaIsTyping=false;disableIAInput(false);var inp=document.getElementById('ia-input');if(inp)inp.focus();}
+  async function askClaude(userText){if(iaIsTyping)return;var pet=getPetById(curPetId);if(!pet)return;
+    
+   
+    
+    iaIsTyping=true;IA_MESSAGES.push({role:'user',content:userText});appendIAMessage('user',userText);showTypingIndicator();disableIAInput(true);try{
+    
+    var response = await fetch(PROXY_URL, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+  },
+  body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,system:buildSystemPrompt(pet),messages:IA_MESSAGES.map(function(m){return{role:m.role,content:m.content};})})
+});
+    
+
+    
+    hideTypingIndicator();if(!response.ok){var errData=await response.json().catch(function(){return{};});appendIAMessage('assistant','❌ '+(errData.error&&errData.error.message?errData.error.message:'Error al conectar con la IA.'));iaIsTyping=false;disableIAInput(false);return;}var data=await response.json();var reply=data.content&&data.content[0]&&data.content[0].text?data.content[0].text:'No pude generar una respuesta.';IA_MESSAGES.push({role:'assistant',content:reply});appendIAMessage('assistant',reply);}catch(e){hideTypingIndicator();appendIAMessage('assistant','❌ Error de conexión.');}iaIsTyping=false;disableIAInput(false);var inp=document.getElementById('ia-input');if(inp)inp.focus();}
   function appendIAMessage(role,content){var msgs=document.getElementById('ia-messages');if(!msgs)return;var div=document.createElement('div');div.className='ia-msg '+role;div.innerHTML='<div class="ia-msg-avatar" aria-hidden="true">'+(role==='assistant'?'🩺':'👤')+'</div><div class="ia-msg-bubble">'+formatIAText(content)+'</div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
   function showTypingIndicator(){var msgs=document.getElementById('ia-messages');if(!msgs)return;var div=document.createElement('div');div.className='ia-msg assistant';div.id='ia-typing-indicator';div.innerHTML='<div class="ia-msg-avatar" aria-hidden="true">🩺</div><div class="ia-typing"><div class="ia-typing-dot"></div><div class="ia-typing-dot"></div><div class="ia-typing-dot"></div></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
   function hideTypingIndicator(){var el=document.getElementById('ia-typing-indicator');if(el)el.remove();}

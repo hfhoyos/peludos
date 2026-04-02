@@ -564,11 +564,22 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     <div class="modal-title" id="pet-form-title">Agregar mascota</div>
     <div class="auth-msg" id="pet-form-msg" role="alert" aria-live="polite"></div>
     <div class="pet-form-group"><label class="pet-form-label">Foto</label>
-      <div class="photo-upload-area" id="photo-upload-area" onclick="triggerPhotoInput()" role="button" tabindex="0">
+      <div class="photo-upload-area" id="photo-upload-area" onclick="openPhotoChooser()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPhotoChooser()">
         <img id="photo-preview" class="photo-preview" src="" alt="" style="display:none">
         <div class="photo-placeholder" id="photo-placeholder"><span class="photo-placeholder-icon" aria-hidden="true">📷</span><div class="photo-placeholder-text">Toca para agregar foto</div><div class="photo-placeholder-sub">Cámara o galería · máx 1MB</div></div>
         <div class="photo-overlay" aria-hidden="true"><span style="font-size:24px">📷</span><span class="photo-overlay-text">Cambiar foto</span></div>
-        <input type="file" id="photo-file-input" class="photo-file-input" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onchange="handlePhotoSelect(this)">
+      </div>
+      <!-- inputs separados: galería y cámara -->
+      <input type="file" id="photo-file-gallery" style="display:none" accept="image/jpeg,image/png,image/webp,image/gif" onchange="handlePhotoSelect(this)">
+      <input type="file" id="photo-file-camera" style="display:none" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onchange="handlePhotoSelect(this)">
+      <!-- mini-modal selector -->
+      <div id="photo-chooser" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center" onclick="closePhotoChooser(event)">
+        <div style="background:var(--card);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:15px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">Agregar foto</div>
+          <button onclick="event.stopPropagation();closePhotoChooser();document.getElementById('photo-file-camera').click()" style="background:var(--glass2);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px">📷 <span>Tomar foto</span></button>
+          <button onclick="event.stopPropagation();closePhotoChooser();document.getElementById('photo-file-gallery').click()" style="background:var(--glass2);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px">🖼️ <span>Elegir de galería</span></button>
+          <button onclick="closePhotoChooser()" style="background:transparent;border:none;padding:10px;font-size:14px;color:var(--muted);cursor:pointer">Cancelar</button>
+        </div>
       </div>
       <div class="photo-upload-progress" id="photo-upload-progress"><div class="photo-upload-progress-bar" id="photo-upload-progress-bar"></div></div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px" id="photo-status"></div>
@@ -1263,8 +1274,50 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — FOTO (Ladrillo 5b)
      ────────────────────────────────────────────────────────────── */
-  window.triggerPhotoInput=function(){document.getElementById('photo-file-input').click();};
-  window.handlePhotoSelect=function(input){var file=input.files&&input.files[0];if(!file)return;var allowed=['image/jpeg','image/png','image/webp','image/gif'];if(allowed.indexOf(file.type)===-1){setPhotoStatus('⚠️ Solo imágenes JPEG, PNG, WebP o GIF.','error');return;}setPhotoStatus('Comprimiendo...','info');var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var canvas=document.createElement('canvas');var MAX_DIM=800;var w=img.width,h=img.height;if(w>MAX_DIM||h>MAX_DIM){if(w>h){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}else{w=Math.round(w*MAX_DIM/h);h=MAX_DIM;}}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);canvas.toBlob(function(blob){if(blob.size>1*1024*1024){setPhotoStatus('⚠️ La imagen comprimida supera 1MB.','error');selPhotoBlob=null;return;}selPhotoBlob=blob;var previewUrl=URL.createObjectURL(blob);var previewEl=document.getElementById('photo-preview');previewEl.src=previewUrl;previewEl.style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');var kb=Math.round(blob.size/1024);setPhotoStatus('✅ Lista · '+w+'×'+h+'px · '+kb+'KB','ok');},'image/jpeg',0.75);};img.onerror=function(){setPhotoStatus('⚠️ No se pudo leer la imagen.','error');};img.src=e.target.result;};reader.readAsDataURL(file);};
+  /* mini-modal foto */
+  window.openPhotoChooser=function(){var el=document.getElementById('photo-chooser');el.style.display='flex';};
+  window.closePhotoChooser=function(e){if(!e||e.target===document.getElementById('photo-chooser')){document.getElementById('photo-chooser').style.display='none';}};
+  window.handlePhotoSelect=function(input){
+    var file=input.files&&input.files[0];
+    input.value=''; // reset para permitir seleccionar el mismo archivo de nuevo
+    if(!file)return;
+    var allowed=['image/jpeg','image/png','image/webp','image/gif'];
+    if(allowed.indexOf(file.type)===-1){setPhotoStatus('⚠️ Solo imágenes JPEG, PNG, WebP o GIF.','error');return;}
+    setPhotoStatus('Comprimiendo...','info');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var MAX_DIM=800;
+        var w=img.width,h=img.height;
+        if(w>MAX_DIM||h>MAX_DIM){if(w>h){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}else{w=Math.round(w*MAX_DIM/h);h=MAX_DIM;}}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        var TARGET_KB=256;
+        var quality=0.80;
+        function intentar(){
+          canvas.toBlob(function(blob){
+            if(blob.size<=TARGET_KB*1024||quality<=0.10){
+              if(blob.size>1*1024*1024){setPhotoStatus('⚠️ Imagen demasiado grande incluso comprimida.','error');selPhotoBlob=null;return;}
+              selPhotoBlob=blob;
+              var previewUrl=URL.createObjectURL(blob);
+              var previewEl=document.getElementById('photo-preview');
+              previewEl.src=previewUrl;previewEl.style.display='block';
+              document.getElementById('photo-placeholder').style.display='none';
+              document.getElementById('photo-upload-area').classList.add('has-photo');
+              var kb=Math.round(blob.size/1024);
+              setPhotoStatus('✅ Lista · '+w+'×'+h+'px · '+kb+'KB','ok');
+            }else{quality=Math.round((quality-0.10)*100)/100;intentar();}
+          },'image/jpeg',quality);
+        }
+        intentar();
+      };
+      img.onerror=function(){setPhotoStatus('⚠️ No se pudo leer la imagen.','error');};
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
   async function uploadPhoto(petId){if(!selPhotoBlob)return selPhotoUrl;var fileName=currentUser.id+'/'+petId+'-'+Date.now()+'.jpg';var progressBar=document.getElementById('photo-upload-progress');var bar=document.getElementById('photo-upload-progress-bar');progressBar.classList.add('visible');bar.style.width='30%';try{var res=await sb.storage.from('pet-photos').upload(fileName,selPhotoBlob,{contentType:'image/jpeg',upsert:true});bar.style.width='80%';if(res.error)throw new Error(res.error.message);var urlRes=sb.storage.from('pet-photos').getPublicUrl(fileName);bar.style.width='100%';setTimeout(function(){progressBar.classList.remove('visible');bar.style.width='0';},600);return urlRes.data.publicUrl;}catch(e){progressBar.classList.remove('visible');throw e;}}
   function setPhotoStatus(text,type){var el=document.getElementById('photo-status');if(!el)return;el.textContent=text;el.style.color=type==='error'?'#ff9a9a':type==='ok'?'#34d399':'var(--muted)';}
 
@@ -1272,7 +1325,7 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — GESTIÓN DE MASCOTAS
      ────────────────────────────────────────────────────────────── */
-  window.openPetForm=function(id){petEditId=id||null;var isEdit=!!petEditId;document.getElementById('pet-name').value='';document.getElementById('pet-breed').value='';document.getElementById('pet-birthdate').value='';document.getElementById('pet-weight').value='';document.getElementById('pet-allergies').value='';document.getElementById('pet-behavior').value='';document.getElementById('pet-traits').value='';document.getElementById('age-preview').innerHTML='';document.getElementById('pet-form-msg').className='auth-msg';document.getElementById('btn-delete-pet').style.display=isEdit?'':'none';document.getElementById('pet-form-title').textContent=isEdit?'Editar mascota':'Agregar mascota';document.getElementById('btn-save-pet-text').textContent=isEdit?'Guardar cambios 🐾':'Guardar mascota 🐾';selPhotoBlob=null;selPhotoUrl=null;document.getElementById('photo-preview').style.display='none';document.getElementById('photo-preview').src='';document.getElementById('photo-placeholder').style.display='';document.getElementById('photo-upload-area').classList.remove('has-photo');document.getElementById('photo-status').textContent='';document.getElementById('photo-file-input').value='';selEmoji='🐕';selSpecies='dog';selColor='#34d399';resetSpeciesGrid();resetColorGrid();if(isEdit){var pet=getPetById(petEditId);if(pet){document.getElementById('pet-name').value=pet.name||'';document.getElementById('pet-breed').value=pet.breed||'';document.getElementById('pet-birthdate').value=pet.birthdate||'';document.getElementById('pet-weight').value=pet.weight_kg||'';document.getElementById('pet-allergies').value=pet.allergies||'';document.getElementById('pet-behavior').value=pet.behavior||'';document.getElementById('pet-traits').value=pet.traits||'';selEmoji=pet.emoji||'🐕';selSpecies=pet.species||'dog';selColor=pet.color||'#34d399';selPhotoUrl=pet.photo_url||null;preselectSpecies(pet.emoji);preselectColor(pet.color);if(pet.birthdate)window.updateAgePreview(pet.birthdate);if(pet.photo_url){document.getElementById('photo-preview').src=pet.photo_url;document.getElementById('photo-preview').style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');setPhotoStatus('Foto actual · toca para cambiar','info');}}}document.getElementById('modal-pet-form').classList.remove('hidden');setTimeout(function(){document.getElementById('pet-name').focus();},300);};
+  window.openPetForm=function(id){petEditId=id||null;var isEdit=!!petEditId;document.getElementById('pet-name').value='';document.getElementById('pet-breed').value='';document.getElementById('pet-birthdate').value='';document.getElementById('pet-weight').value='';document.getElementById('pet-allergies').value='';document.getElementById('pet-behavior').value='';document.getElementById('pet-traits').value='';document.getElementById('age-preview').innerHTML='';document.getElementById('pet-form-msg').className='auth-msg';document.getElementById('btn-delete-pet').style.display=isEdit?'':'none';document.getElementById('pet-form-title').textContent=isEdit?'Editar mascota':'Agregar mascota';document.getElementById('btn-save-pet-text').textContent=isEdit?'Guardar cambios 🐾':'Guardar mascota 🐾';selPhotoBlob=null;selPhotoUrl=null;document.getElementById('photo-preview').style.display='none';document.getElementById('photo-preview').src='';document.getElementById('photo-placeholder').style.display='';document.getElementById('photo-upload-area').classList.remove('has-photo');document.getElementById('photo-status').textContent='';document.getElementById('photo-file-gallery').value='';document.getElementById('photo-file-camera').value='';selEmoji='🐕';selSpecies='dog';selColor='#34d399';resetSpeciesGrid();resetColorGrid();if(isEdit){var pet=getPetById(petEditId);if(pet){document.getElementById('pet-name').value=pet.name||'';document.getElementById('pet-breed').value=pet.breed||'';document.getElementById('pet-birthdate').value=pet.birthdate||'';document.getElementById('pet-weight').value=pet.weight_kg||'';document.getElementById('pet-allergies').value=pet.allergies||'';document.getElementById('pet-behavior').value=pet.behavior||'';document.getElementById('pet-traits').value=pet.traits||'';selEmoji=pet.emoji||'🐕';selSpecies=pet.species||'dog';selColor=pet.color||'#34d399';selPhotoUrl=pet.photo_url||null;preselectSpecies(pet.emoji);preselectColor(pet.color);if(pet.birthdate)window.updateAgePreview(pet.birthdate);if(pet.photo_url){document.getElementById('photo-preview').src=pet.photo_url;document.getElementById('photo-preview').style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');setPhotoStatus('Foto actual · toca para cambiar','info');}}}document.getElementById('modal-pet-form').classList.remove('hidden');setTimeout(function(){document.getElementById('pet-name').focus();},300);};
   window.closePetForm=function(e){if(!e||e.target===document.getElementById('modal-pet-form'))document.getElementById('modal-pet-form').classList.add('hidden');};
   window.savePet=async function(){var name=document.getElementById('pet-name').value.trim();if(!name){showPetMsg('El nombre no puede estar vacío.','error');return;}setPetLoading(true);try{var photoUrl=selPhotoUrl;if(selPhotoBlob){var tempId=petEditId||crypto.randomUUID();photoUrl=await uploadPhoto(tempId);}var data={name,emoji:selEmoji,species:selSpecies,color:selColor,photo_url:photoUrl||null,breed:document.getElementById('pet-breed').value.trim()||null,birthdate:document.getElementById('pet-birthdate').value||null,weight_kg:parseFloat(document.getElementById('pet-weight').value)||null,allergies:document.getElementById('pet-allergies').value.trim()||null,behavior:document.getElementById('pet-behavior').value.trim()||null,traits:document.getElementById('pet-traits').value.trim()||null};var res=petEditId?await sb.from('pets').update(data).eq('id',petEditId):await sb.from('pets').insert({...data,user_id:currentUser.id});if(res.error){showPetMsg('Error: '+res.error.message,'error');setPetLoading(false);return;}document.getElementById('modal-pet-form').classList.add('hidden');setPetLoading(false);selPhotoBlob=null;await loadPets();if(!petEditId&&PETS.length>0){curPetId=PETS[PETS.length-1].id;renderPets();updateHubAvatar();await Promise.all([loadDiary(curPetId),loadClinical(curPetId),loadAppts(curPetId)]);}}catch(e){showPetMsg('Error: '+e.message,'error');setPetLoading(false);}};
   window.deletePet=async function(){if(!petEditId)return;var pet=getPetById(petEditId);if(!confirm('¿Eliminar a '+pet.name+'?'))return;setPetLoading(true);try{if(pet.photo_url){var path=pet.photo_url.split('/pet-photos/')[1];if(path)await sb.storage.from('pet-photos').remove([path]);}var res=await sb.from('pets').delete().eq('id',petEditId);if(res.error){showPetMsg('Error: '+res.error.message,'error');setPetLoading(false);return;}document.getElementById('modal-pet-form').classList.add('hidden');setPetLoading(false);await loadPets();}catch(e){showPetMsg('Error de conexión.','error');setPetLoading(false);}};

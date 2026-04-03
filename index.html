@@ -7,24 +7,35 @@
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  PELUDOS APP — ARQUITECTURA "COMPLEJO DE TORRES"                ║
-  ║  Versión: 7.0 — Ladrillo 6: Torre 4 Agenda Inteligente         ║
+  ║  Versión: demo_11 — Rediseño UX completo                        ║
   ║                                                                  ║
-  ║  CAMBIOS v7.0 respecto al Ladrillo 5b:                          ║
-  ║  • Torre 4: Agenda completamente funcional                      ║
-  ║  • Crear citas: título, tipo, fecha, hora, lugar, notas         ║
-  ║  • Tipos: veterinario, peluquería, vacuna, desparasitación,     ║
-  ║            entrenamiento, paseo, otro                           ║
-  ║  • Recordatorio configurable: 1, 3, 7 días antes                ║
-  ║  • Marcar cita como completada (toggle)                         ║
-  ║  • Vista de calendario: mes actual con dots de citas            ║
-  ║  • Vista de lista: próximas citas ordenadas por fecha           ║
-  ║  • Alertas en Hub: citas en los próximos 3 días                 ║
-  ║  • Orb "Agenda" en Hub: próxima cita o "sin citas"             ║
-  ║  • Badge en card de Agenda: número de citas próximas            ║
+  ║  CAMBIOS respecto a demo_10:                                     ║
+  ║  1. 'Información del Familiar' contextual por torre              ║
+  ║     · Nutrición → alergias, peso, especie                        ║
+  ║     · Historial de Cuidado → alergias, rasgos, conducta         ║
+  ║     · Conducta → conducta, rasgos físicos                        ║
+  ║  2. Torre Clínica → 'Historial de Cuidado' con 4 tabs:          ║
+  ║     🛡 Preventiva · 🧼 Higiene · 🏃 Ejercicio · 🎓 Entrenamiento ║
+  ║  3. Botón X cerrar en TODOS los modales                          ║
+  ║  4. Grilla módulos reordenada (3 filas × 2 columnas)            ║
+  ║     Fila 1: Dashboard · Diario                                   ║
+  ║     Fila 2: Agenda · Historial de Cuidado                        ║
+  ║     Fila 3: Nutrición · Conducta                                 ║
+  ║  5. Inclusión reemplaza Backoffice en Settings                   ║
+  ║  6. Asistente IA en topbar como botón 🩺                         ║
+  ║  7. Topbar: [Nombre App] · [🔔][⚙️][🩺][🚪]                     ║
+  ║  8. Barra inferior eliminada completamente                        ║
+  ║  + Parches demo_10:                                              ║
+  ║    · Código zombie ANTHROPIC_KEY eliminado                       ║
+  ║    · --card reemplazado por --bg2 en mini-modal foto             ║
   ║                                                                  ║
-  ║  TABLAS SUPABASE:                                               ║
-  ║  auth.users · pets · diary_entries · vaccines ·                 ║
-  ║  health_records · appointments (nueva)                          ║
+  ║  PLANTA BAJA: login · loading · settings · portal               ║
+  ║               modal-pet-form · modal-diary-form                 ║
+  ║               modal-vaccine-form · modal-record-form            ║
+  ║               modal-care-form · modal-appt-form                 ║
+  ║  TORRE HUB:   #screen-home                                       ║
+  ║  TORRES:      Diario · Historial de Cuidado · Agenda · IA        ║
+  ║               Nutrición · Conducta · Dashboard · Inclusión       ║
   ╚══════════════════════════════════════════════════════════════════╝
 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -97,14 +108,29 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .loading-bar{width:220px;height:4px;border-radius:2px;background:var(--glass2);overflow:hidden}
 .loading-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--coral));width:0;transition:width 1.6s ease-out}
 
-/* Modales */
+/* ────────────────────────────────────────────────────────
+   MODALES — base + botón X cerrar (Cambio 3)
+   ──────────────────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;animation:fade-in .25s ease;backdrop-filter:blur(4px)}
 .modal-overlay.hidden{display:none}
-.modal-sheet{background:var(--bg2);border:1.5px solid var(--border);border-radius:28px 28px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:480px;animation:slide-up .3s ease}
+.modal-sheet{background:var(--bg2);border:1.5px solid var(--border);border-radius:28px 28px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:480px;animation:slide-up .3s ease;position:relative}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 @keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 1.25rem}
-.modal-title{font-family:var(--font-display);font-size:20px;margin-bottom:1rem;color:var(--teal-l)}
+
+/* Botón X — esquina superior derecha de TODOS los modales */
+.modal-close-btn{
+  position:absolute;top:16px;right:16px;
+  width:32px;height:32px;border-radius:50%;
+  border:1.5px solid var(--border);background:var(--glass);
+  color:var(--muted);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;font-family:var(--font-main);line-height:1;
+  z-index:1
+}
+.modal-close-btn:hover{background:var(--glass2);color:var(--text);border-color:var(--border2)}
+
+.modal-title{font-family:var(--font-display);font-size:20px;margin-bottom:1rem;color:var(--teal-l);padding-right:40px}
 .settings-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
 .settings-row:last-of-type{border-bottom:none;padding-bottom:0}
 .settings-icon{font-size:20px;width:32px;text-align:center;flex-shrink:0}
@@ -126,7 +152,6 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .app-name-input:focus{border-color:var(--teal-l)}
 .session-info{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:var(--sub);line-height:1.6}
 .session-info strong{color:var(--teal-l)}
-.api-key-input{padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:12px;font-family:'Courier New',monospace;outline:none;width:180px}
 
 /* Formularios */
 .pet-form-group{margin-bottom:1rem}
@@ -156,82 +181,111 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .mood-btn.active{background:rgba(64,224,208,.2);border-color:var(--teal-l);transform:scale(1.1)}
 .diary-textarea{width:100%;padding:13px 16px;border-radius:14px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:15px;font-family:var(--font-main);outline:none;transition:all .2s;resize:none;min-height:100px;line-height:1.5}
 .diary-textarea::placeholder{color:var(--muted)}
-.diary-textarea:focus{border-color:var(--teal-l);background:var(--glass2);box-shadow:0 0 0 3px rgba(64,224,208,.1)}
+.diary-textarea:focus{border-color:var(--teal-l);background:var(--glass2)}
 .diary-date-input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:14px;font-family:var(--font-main);outline:none;transition:all .2s}
 .diary-date-input:focus{border-color:var(--teal-l)}
-
-/* Photo */
-.photo-upload-area{position:relative;width:100%;border-radius:16px;border:2px dashed var(--border2);background:var(--glass);overflow:hidden;cursor:pointer;transition:all .2s;margin-bottom:4px}
-.photo-upload-area:hover{border-color:var(--teal-l);background:var(--glass2)}
-.photo-upload-area.has-photo{border-style:solid;border-color:var(--border2)}
-.photo-preview{width:100%;height:160px;object-fit:cover;display:block}
-.photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;gap:8px;padding:1rem}
-.photo-placeholder-icon{font-size:32px;opacity:.6}
-.photo-placeholder-text{font-size:13px;color:var(--sub);font-weight:700;text-align:center}
-.photo-placeholder-sub{font-size:11px;color:var(--muted);text-align:center}
-.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .2s}
-.photo-upload-area.has-photo:hover .photo-overlay{opacity:1}
-.photo-overlay-text{font-size:13px;font-weight:800;color:#fff}
-.photo-file-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.photo-upload-progress{height:3px;border-radius:2px;background:var(--glass2);overflow:hidden;margin-top:6px;display:none}
-.photo-upload-progress.visible{display:block}
-.photo-upload-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--teal-l));width:0;transition:width .4s ease}
-.age-badge{display:inline-block;padding:3px 10px;border-radius:20px;background:rgba(64,224,208,.12);border:1px solid rgba(64,224,208,.25);color:var(--teal-l);font-size:12px;font-weight:800;margin-top:5px}
 .pet-form-input-sm{width:100%;padding:10px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:14px;font-family:var(--font-main);outline:none;transition:all .2s}
 .pet-form-input-sm:focus{border-color:var(--teal-l);background:var(--glass2)}
 .pet-form-input-sm::placeholder{color:var(--muted)}
+.age-badge{display:inline-block;padding:3px 10px;border-radius:20px;background:rgba(64,224,208,.12);border:1px solid rgba(64,224,208,.25);color:var(--teal-l);font-size:12px;font-weight:800;margin-top:5px}
 
-/* ================================================================
-   TORRE 4 — AGENDA INTELIGENTE (estilos)
-   ================================================================ */
+/* ────────────────────────────────────────────────────────
+   TARJETA 'INFORMACIÓN DEL FAMILIAR' (Cambio 1)
+   ──────────────────────────────────────────────────────── */
+.familiar-card{
+  background:rgba(64,224,208,0.05);
+  border:1px solid rgba(64,224,208,0.15);
+  border-radius:14px;padding:12px 14px;
+  margin-bottom:1.25rem
+}
+.familiar-header{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:8px
+}
+.familiar-avatar{
+  width:36px;height:36px;border-radius:50%;
+  object-fit:cover;border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;overflow:hidden;flex-shrink:0;
+  background:var(--glass2)
+}
+.familiar-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.familiar-name{font-size:14px;font-weight:800;color:var(--teal-l)}
+.familiar-species{font-size:11px;color:var(--muted);margin-top:1px}
+.familiar-label{font-size:10px;font-weight:800;color:var(--teal-l);text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin-bottom:2px}
+.familiar-data{font-size:12px;color:var(--sub);line-height:1.5}
+.familiar-row{display:flex;gap:16px;flex-wrap:wrap}
+.familiar-field{flex:1;min-width:120px}
 
-/* Tabs vista */
+/* ────────────────────────────────────────────────────────
+   TORRE 2 — HISTORIAL DE CUIDADO (Cambio 2)
+   ──────────────────────────────────────────────────────── */
+/* Tabs */
+.care-tabs{display:flex;gap:3px;background:var(--glass);border-radius:12px;padding:4px;margin-bottom:1.25rem;overflow-x:auto;scrollbar-width:none}
+.care-tabs::-webkit-scrollbar{display:none}
+.care-tab{flex-shrink:0;padding:8px 10px;border-radius:9px;border:none;background:transparent;color:var(--sub);font-size:11px;font-weight:700;font-family:var(--font-main);cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap}
+.care-tab.active{background:var(--glass2);color:var(--teal-l);border:1px solid var(--border)}
+.care-fab{display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-size:13px;font-weight:800;font-family:var(--font-main);cursor:pointer;transition:all .2s;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(64,224,208,0.25)}
+/* Cards de registros de cuidado */
+.care-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.care-card:hover{background:var(--glass2);border-color:var(--border2)}
+.care-card-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.care-card-icon{font-size:20px;flex-shrink:0}
+.care-card-title{font-size:14px;font-weight:800;flex:1}
+.care-card-date{font-size:11px;color:var(--muted)}
+.care-card-note{font-size:12px;color:var(--sub);line-height:1.4;margin-top:4px}
+/* Badges por subtipo */
+.care-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;white-space:nowrap}
+.cb-vacuna{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
+.cb-desparasitacion{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
+.cb-esterilizacion{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.25)}
+.cb-bano{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+.cb-cepillado{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.25)}
+.cb-oidos{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.25)}
+.cb-dientes{background:rgba(236,72,153,.15);color:#f9a8d4;border:1px solid rgba(236,72,153,.25)}
+.cb-ejercicio{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+.cb-entrenamiento{background:rgba(132,204,22,.15);color:#bef264;border:1px solid rgba(132,204,22,.25)}
+.cb-otro{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
+/* Estado vacío */
+.care-empty{text-align:center;padding:2rem 1rem}
+.care-empty-icon{font-size:40px;display:block;margin-bottom:10px;opacity:.6}
+.care-empty-title{font-size:15px;font-weight:800;margin-bottom:6px}
+.care-empty-sub{font-size:12px;color:var(--sub);line-height:1.5}
+
+/* Vacunas */
+.vaccine-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.vaccine-card:hover{background:var(--glass2);border-color:var(--border2)}
+.vaccine-card.alert{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.05)}
+.vaccine-card.ok{border-color:rgba(64,224,208,.3);background:rgba(64,224,208,.04)}
+.vaccine-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.vaccine-name{font-size:14px;font-weight:800}
+.vaccine-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
+.badge-alert{background:rgba(255,107,107,.2);color:#ff9a9a;border:1px solid rgba(255,107,107,.3)}
+.badge-ok{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
+.badge-none{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
+.vaccine-meta{font-size:12px;color:var(--sub);display:flex;gap:12px;flex-wrap:wrap}
+.vaccine-vet{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* Agenda */
 .agenda-tabs{display:flex;gap:4px;background:var(--glass);border-radius:12px;padding:4px;margin-bottom:1.25rem}
 .agenda-tab{flex:1;padding:9px 4px;border-radius:9px;border:none;background:transparent;color:var(--sub);font-size:12px;font-weight:700;font-family:var(--font-main);cursor:pointer;transition:all .2s;text-align:center}
 .agenda-tab.active{background:var(--glass2);color:var(--teal-l);border:1px solid var(--border)}
-
-/* FAB */
 .agenda-fab{display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-size:13px;font-weight:800;font-family:var(--font-main);cursor:pointer;transition:all .2s;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(64,224,208,0.25)}
-.agenda-fab:hover{filter:brightness(1.1);transform:translateY(-1px)}
-
-/* ── Calendario ── */
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-month{font-size:15px;font-weight:800;color:var(--teal-l)}
 .cal-nav{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.cal-nav:hover{background:var(--glass2)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:1rem}
 .cal-day-name{text-align:center;font-size:10px;font-weight:800;color:var(--muted);padding:4px 0;text-transform:uppercase}
-.cal-day{
-  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-  border-radius:50%;font-size:13px;font-weight:700;cursor:pointer;
-  transition:all .2s;position:relative;flex-direction:column;gap:2px
-}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;position:relative}
 .cal-day:hover{background:var(--glass2)}
 .cal-day.today{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.3)}
-.cal-day.has-event::after{
-  content:'';position:absolute;bottom:3px;
-  width:4px;height:4px;border-radius:50%;background:var(--teal-l)
-}
+.cal-day.has-event::after{content:'';position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--teal-l)}
 .cal-day.has-alert::after{background:var(--coral)}
 .cal-day.other-month{color:var(--muted);opacity:.4}
 .cal-day.selected{background:rgba(64,224,208,.25);color:var(--teal-l);font-weight:900}
-.cal-day.completed-day{opacity:.5}
-
-/* Citas del día seleccionado */
-.cal-day-detail{
-  background:var(--glass);border:1px solid var(--border);
-  border-radius:14px;padding:12px;margin-bottom:1rem
-}
+.cal-day-detail{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:1rem}
 .cal-day-detail-title{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.cal-no-events{font-size:13px;color:var(--muted);text-align:center;padding:8px 0}
-
-/* ── Lista de citas ── */
-.appt-group-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-left:4px}
-.appt-card{
-  background:var(--glass);border:1px solid var(--border);
-  border-radius:16px;padding:14px;margin-bottom:10px;
-  cursor:pointer;transition:all .2s;position:relative
-}
+.appt-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s;position:relative}
 .appt-card:hover{background:var(--glass2);border-color:var(--border2)}
 .appt-card.completed{opacity:.55}
 .appt-card.urgent{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.05)}
@@ -248,46 +302,48 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .ab-soon{background:rgba(251,191,36,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
 .ab-ok{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
 .ab-done{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
-/* Check de completado */
-.appt-check{
-  width:22px;height:22px;border-radius:50%;
-  border:2px solid var(--border2);background:var(--glass);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:all .2s;flex-shrink:0;font-size:12px
-}
+.appt-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;font-size:12px}
 .appt-check.done{background:rgba(64,224,208,.2);border-color:var(--teal-l);color:var(--teal-l)}
-.appt-check:hover{border-color:var(--teal-l)}
-
-/* Estado vacío */
 .agenda-empty{text-align:center;padding:2rem 1rem}
-.agenda-empty-icon{font-size:44px;display:block;margin-bottom:12px;opacity:.6}
-.agenda-empty-title{font-size:16px;font-weight:800;margin-bottom:6px}
-.agenda-empty-sub{font-size:13px;color:var(--sub);line-height:1.5}
-
-/* Alerta de agenda en Hub */
-.hub-agenda-alert{
-  background:rgba(251,191,36,.06);
-  border:1.5px solid rgba(251,191,36,.25);
-  border-radius:var(--radius);padding:1rem;
-  margin-bottom:1.25rem;cursor:pointer;transition:all .2s
-}
+.hub-agenda-alert{background:rgba(251,191,36,.06);border:1.5px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;cursor:pointer;transition:all .2s}
 .hub-agenda-alert:hover{background:rgba(251,191,36,.1)}
-
-/* Selector de recordatorio */
 .reminder-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
 .reminder-btn{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--glass);color:var(--sub);font-size:12px;font-weight:700;font-family:var(--font-main);cursor:pointer;transition:all .2s}
 .reminder-btn.active{background:rgba(64,224,208,.2);border-color:var(--teal-l);color:var(--teal-l)}
-.reminder-btn:hover{background:var(--glass2)}
 
-/* Torre Hub */
+/* Foto */
+.photo-upload-area{position:relative;width:100%;border-radius:16px;border:2px dashed var(--border2);background:var(--glass);overflow:hidden;cursor:pointer;transition:all .2s;margin-bottom:4px}
+.photo-upload-area:hover{border-color:var(--teal-l);background:var(--glass2)}
+.photo-upload-area.has-photo{border-style:solid;border-color:var(--border2)}
+.photo-preview{width:100%;height:160px;object-fit:cover;display:block}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;gap:8px;padding:1rem}
+.photo-placeholder-icon{font-size:32px;opacity:.6}
+.photo-placeholder-text{font-size:13px;color:var(--sub);font-weight:700;text-align:center}
+.photo-placeholder-sub{font-size:11px;color:var(--muted);text-align:center}
+.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .2s}
+.photo-upload-area.has-photo:hover .photo-overlay{opacity:1}
+.photo-overlay-text{font-size:13px;font-weight:800;color:#fff}
+.photo-upload-progress{height:3px;border-radius:2px;background:var(--glass2);overflow:hidden;margin-top:6px;display:none}
+.photo-upload-progress.visible{display:block}
+.photo-upload-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--teal-l));width:0;transition:width .4s ease}
+
+/* ────────────────────────────────────────────────────────
+   TORRE HUB — Topbar rediseñada (Cambios 6, 7, 8)
+   ──────────────────────────────────────────────────────── */
 #screen-home{align-items:flex-start;padding:0}
-.home-inner{max-width:480px;width:100%;margin:0 auto;padding:1.25rem 1rem 6rem;position:relative;z-index:1;min-height:100vh}
+.home-inner{max-width:480px;width:100%;margin:0 auto;padding:1.25rem 1rem 2rem;position:relative;z-index:1;min-height:100vh}
+
+/* Topbar: Nombre App a la izquierda, 4 iconos a la derecha */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
 .topbar-logo{display:flex;align-items:center;gap:8px}
 .topbar-name{font-family:var(--font-display);font-size:22px;color:var(--teal-l)}
-.topbar-actions{display:flex;gap:8px}
-.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--glass);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:all .2s}
+.topbar-actions{display:flex;gap:6px}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--glass);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .2s}
 .icon-btn:hover{background:var(--glass2)}
+/* Botón IA en topbar — ligeramente destacado */
+.icon-btn-ia{background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3)}
+.icon-btn-ia:hover{background:rgba(168,85,247,0.2)}
+
 .greeting-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;backdrop-filter:blur(12px)}
 .greeting-top{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
 .user-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--coral));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;border:2px solid var(--border2);overflow:hidden}
@@ -301,7 +357,6 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .pet-chip:hover{background:rgba(64,224,208,.15)}
 .pet-chip-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--glass2);display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden}
 .pet-chip-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.pet-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .pet-edit-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;margin-left:2px;font-family:var(--font-main);transition:color .2s}
 .pet-edit-btn:hover{color:var(--teal-l)}
 .orbs-row{display:flex;gap:8px;margin-bottom:1.25rem}
@@ -313,7 +368,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .hub-alert-card:hover{background:rgba(255,107,107,.13)}
 .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sec-title{font-size:12px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.08em}
-.sec-more{font-size:12px;color:var(--teal-l);cursor:pointer;font-weight:700;border:none;background:none;font-family:var(--font-main)}
+
+/* ────────────────────────────────────────────────────────
+   GRILLA DE MÓDULOS — 3 filas × 2 columnas (Cambio 4)
+   ──────────────────────────────────────────────────────── */
 .modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.25rem}
 .mod-card{background:var(--glass);border:1.5px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(12px);position:relative;overflow:hidden}
 .mod-card:hover{border-color:var(--border2);background:var(--glass2);transform:translateY(-2px)}
@@ -325,11 +383,6 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .mb-teal{background:rgba(64,224,208,.2);color:var(--teal-l);border:1px solid rgba(64,224,208,.3)}
 .mb-purple{background:rgba(168,85,247,.2);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
 .mb-yellow{background:rgba(251,191,36,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem}
-.quick-btn{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-main)}
-.quick-btn:hover{background:var(--glass2);border-color:var(--border2)}
-.quick-icon{font-size:22px;display:block;margin-bottom:5px}
-.quick-label{font-size:10px;color:var(--sub);font-weight:700}
 .diario-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;cursor:pointer;transition:all .2s}
 .diario-card:hover{background:var(--glass2)}
 .d-entry{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -338,12 +391,6 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .d-mood{font-size:20px;flex-shrink:0}
 .d-text{font-size:13px;color:var(--sub);line-height:1.45;flex:1}
 .d-time{font-size:11px;color:var(--muted);margin-top:2px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:20;padding:10px 20px 18px;background:rgba(13,43,40,.94);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:flex;justify-content:space-around}
-.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 12px;border-radius:12px;transition:all .2s;border:none;background:none;font-family:var(--font-main)}
-.bn-item:hover{background:var(--glass)}
-.bn-item.active .bn-icon,.bn-item.active .bn-label{color:var(--teal-l)}
-.bn-icon{font-size:20px;color:var(--muted);transition:color .2s;display:block}
-.bn-label{font-size:10px;color:var(--muted);font-weight:700;transition:color .2s}
 .diary-sheet{max-height:88vh;overflow-y:auto;display:flex;flex-direction:column}
 .diary-fab{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-size:14px;font-weight:800;font-family:var(--font-main);cursor:pointer;transition:all .2s;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(64,224,208,0.25)}
 .diary-timeline{display:flex;flex-direction:column;gap:10px}
@@ -363,41 +410,8 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .streak-fire{font-size:20px}
 .streak-text{font-size:13px;color:var(--sub)}
 .streak-count{font-size:18px;font-weight:900;color:var(--teal-l)}
-.clinic-tabs{display:flex;gap:4px;background:var(--glass);border-radius:12px;padding:4px;margin-bottom:1.25rem}
-.clinic-tab{flex:1;padding:9px 4px;border-radius:9px;border:none;background:transparent;color:var(--sub);font-size:12px;font-weight:700;font-family:var(--font-main);cursor:pointer;transition:all .2s;text-align:center}
-.clinic-tab.active{background:var(--glass2);color:var(--teal-l);border:1px solid var(--border)}
-.clinic-fab{display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-size:13px;font-weight:800;font-family:var(--font-main);cursor:pointer;transition:all .2s;margin-bottom:1.25rem;box-shadow:0 4px 20px rgba(64,224,208,0.25)}
-.vaccine-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s}
-.vaccine-card:hover{background:var(--glass2);border-color:var(--border2)}
-.vaccine-card.alert{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.05)}
-.vaccine-card.ok{border-color:rgba(64,224,208,.3);background:rgba(64,224,208,.04)}
-.vaccine-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
-.vaccine-name{font-size:14px;font-weight:800}
-.vaccine-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap}
-.badge-alert{background:rgba(255,107,107,.2);color:#ff9a9a;border:1px solid rgba(255,107,107,.3)}
-.badge-ok{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
-.badge-none{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
-.vaccine-meta{font-size:12px;color:var(--sub);display:flex;gap:12px;flex-wrap:wrap}
-.vaccine-vet{font-size:12px;color:var(--muted);margin-top:4px}
-.record-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s}
-.record-card:hover{background:var(--glass2);border-color:var(--border2)}
-.record-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.record-type-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800}
-.rt-consulta{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
-.rt-cirugia{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.25)}
-.rt-alergia{background:rgba(255,107,107,.15);color:#ff9a9a;border:1px solid rgba(255,107,107,.25)}
-.rt-desparasitacion{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
-.rt-otro{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
-.record-title{font-size:14px;font-weight:800}
-.record-desc{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.4}
-.record-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-.record-date{font-size:11px;color:var(--muted)}
-.record-vet{font-size:11px;color:var(--muted)}
-.clinic-empty{text-align:center;padding:2rem 1rem}
-.clinic-empty-icon{font-size:40px;display:block;margin-bottom:10px;opacity:.6}
-.clinic-empty-title{font-size:15px;font-weight:800;margin-bottom:6px}
-.clinic-empty-sub{font-size:12px;color:var(--sub);line-height:1.5}
-.ia-container{display:flex;flex-direction:column;height:calc(88vh - 80px);max-height:600px}
+
+/* IA */
 .ia-header{background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:14px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .ia-pet-avatar{font-size:24px;flex-shrink:0;width:36px;height:36px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(168,85,247,0.15)}
 .ia-pet-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
@@ -435,6 +449,8 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .ia-disclaimer{font-size:10px;color:var(--muted);line-height:1.4}
 .ia-clear-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--font-main);padding:4px 8px;border-radius:6px;transition:all .2s;white-space:nowrap}
 .ia-clear-btn:hover{background:var(--glass);color:var(--sub)}
+
+/* Inclusión */
 .incl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
 .incl-card{background:var(--glass2);border:1.5px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:all .2s}
 .incl-card:hover{transform:translateY(-2px);border-color:var(--border2)}
@@ -476,14 +492,19 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   <div class="loading-bar"><div class="loading-fill" id="l-fill"></div></div>
 </div>
 
-<!-- TORRE HUB -->
+<!-- TORRE HUB — Sin barra inferior (Cambio 8) -->
 <div id="screen-home" class="screen screen-page hidden" role="main" aria-label="Pantalla principal">
   <div class="home-inner" id="home-content">
+    <!-- Topbar rediseñada (Cambios 6 y 7) -->
     <div class="topbar">
-      <div class="topbar-logo"><span style="font-size:22px" aria-hidden="true">🐾</span><span class="topbar-name" id="app-title">Peludos</span></div>
+      <div class="topbar-logo">
+        <span style="font-size:22px" aria-hidden="true">🐾</span>
+        <span class="topbar-name" id="app-title">Peludos</span>
+      </div>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="showHubAlert()" aria-label="Notificaciones">🔔</button>
         <button class="icon-btn" onclick="openSettings()" aria-label="Configuración">⚙️</button>
+        <button class="icon-btn icon-btn-ia" onclick="openModule('ia')" aria-label="Asistente IA">🩺</button>
         <button class="icon-btn" onclick="doLogout()" aria-label="Cerrar sesión">🚪</button>
       </div>
     </div>
@@ -496,56 +517,31 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     </div>
     <div id="orbs-section">
       <div class="orbs-row" id="orbs-row" role="list"></div>
-      <div class="hub-alert-card" id="hub-alert-card" style="display:none" onclick="openModule('clinica')" role="alert"></div>
-      <!-- Alerta de agenda -->
+      <div class="hub-alert-card" id="hub-alert-card" style="display:none" onclick="openModule('cuidado')" role="alert"></div>
       <div class="hub-agenda-alert" id="hub-agenda-alert" style="display:none" onclick="openModule('agenda')" role="alert"></div>
     </div>
     <div class="sec-hd"><span class="sec-title">Torres — Módulos</span></div>
+    <!-- Grilla reordenada (Cambio 4): Dashboard·Diario / Agenda·Cuidado / Nutrición·Conducta -->
     <div class="modules-grid" role="list" id="modules-grid"></div>
-    <div class="sec-hd"><span class="sec-title">Accesos rápidos</span></div>
-    <div class="quick-grid" role="group">
-      <button class="quick-btn" onclick="openModule('agenda')"><span class="quick-icon" aria-hidden="true">📅</span><span class="quick-label">Agenda</span></button>
-      <button class="quick-btn" onclick="openModule('clinica')"><span class="quick-icon" aria-hidden="true">🏥</span><span class="quick-label">Clínica</span></button>
-      <button class="quick-btn" onclick="openModule('ia')"><span class="quick-icon" aria-hidden="true">🩺</span><span class="quick-label">Consulta IA</span></button>
-      <button class="quick-btn" onclick="showSOS()"><span class="quick-icon" aria-hidden="true">🆘</span><span class="quick-label">Emergencia</span></button>
-    </div>
-    <div class="sec-hd"><span class="sec-title">Diario reciente</span><button class="sec-more" onclick="openModule('diario')">Ver todo →</button></div>
+    <div class="sec-hd"><span class="sec-title">Diario reciente</span><button style="font-size:12px;color:var(--teal-l);cursor:pointer;font-weight:700;border:none;background:none;font-family:var(--font-main)" onclick="openModule('diario')">Ver todo →</button></div>
     <div class="diario-card" onclick="openModule('diario')" id="diario-prev" role="region"></div>
   </div>
-  <nav class="bottom-nav" role="navigation">
-    <button class="bn-item active" aria-current="page"><span class="bn-icon" aria-hidden="true">🏠</span><span class="bn-label">Inicio</span></button>
-    <button class="bn-item" onclick="openModule('agenda')"><span class="bn-icon" aria-hidden="true">📅</span><span class="bn-label">Agenda</span></button>
-    <button class="bn-item" onclick="openModule('ia')"><span class="bn-icon" aria-hidden="true">🩺</span><span class="bn-label">IA</span></button>
-    <button class="bn-item" onclick="openModule('diario')"><span class="bn-icon" aria-hidden="true">📓</span><span class="bn-label">Diario</span></button>
-    <button class="bn-item" onclick="openSettings()"><span class="bn-icon" aria-hidden="true">👤</span><span class="bn-label">Perfil</span></button>
-  </nav>
+  <!-- SIN barra inferior (Cambio 8) -->
 </div>
 
-<!-- PLANTA BAJA — ADM USUARIO -->
+<!-- PLANTA BAJA — ADM USUARIO (Cambio 5: Inclusión reemplaza Backoffice) -->
 <div class="modal-overlay hidden" id="modal-settings" onclick="closeSettings(event)" role="dialog" aria-modal="true" aria-label="Configuración">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeSettings()" aria-label="Cerrar configuración">✕</button>
     <div class="modal-title">Configuración</div>
     <div class="session-info">Sesión activa como <strong id="session-email">—</strong></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🏷</span><div class="settings-body"><div class="settings-label">Nombre de la app</div></div><input class="app-name-input" id="app-name-input" value="Peludos App" oninput="updateAppName(this.value)"></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🎨</span><div class="settings-body"><div class="settings-label">Tema visual</div><div class="theme-swatches"><div class="swatch active" style="background:radial-gradient(circle,#40E0D0,#FF6B6B)" onclick="setTheme('mascotas',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#f472b6,#fbbf24)" onclick="setTheme('calido',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#22d3ee,#a855f7)" onclick="setTheme('dark',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#0D47A1,#FFD700)" onclick="setTheme('fintech',this)" role="button" tabindex="0"></div></div></div></div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">♿</span><div class="settings-body"><div class="settings-label">Accesibilidad</div></div><button class="settings-action" onclick="closeSettings();openModule('inclusion')">Activar</button></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔔</span><div class="settings-body"><div class="settings-label">Notificaciones</div></div><label class="toggle-wrap"><input type="checkbox" checked><div class="toggle-track"><div class="toggle-thumb"></div></div></label></div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔐</span><div class="settings-body"><div class="settings-label">Backoffice</div><div class="settings-sub">Solo admin</div></div><button class="settings-action" onclick="openBackoffice()">Acceder</button></div>
+    <!-- Inclusión reemplaza Backoffice (Cambio 5) -->
+    <div class="settings-row"><span class="settings-icon" aria-hidden="true">♿</span><div class="settings-body"><div class="settings-label">Inclusión</div><div class="settings-sub">Modos de accesibilidad</div></div><button class="settings-action" onclick="closeSettings();openModule('inclusion')">Abrir</button></div>
     <button class="btn-ghost" style="margin-top:1rem;border-color:rgba(255,107,107,.3);color:#ff9a9a" onclick="doLogout()">Cerrar sesión</button>
-  </div>
-</div>
-
-<!-- PLANTA BAJA — ADM OPERADOR -->
-<div class="modal-overlay hidden" id="modal-backoffice" onclick="closeBackoffice(event)" role="dialog" aria-modal="true" aria-label="Backoffice">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle" aria-hidden="true"></div>
-    <div class="modal-title">Backoffice — Operador</div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">🏢</span><div class="settings-body"><div class="settings-label">Nombre de marca</div></div><input class="app-name-input" id="bo-name" value="Peludos App" oninput="updateAppName(this.value)"></div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">🎨</span><div class="settings-body"><div class="settings-label">Paleta</div><div class="theme-swatches"><div class="swatch active" style="background:radial-gradient(circle,#40E0D0,#FF6B6B)" onclick="setTheme('mascotas',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#22d3ee,#a855f7)" onclick="setTheme('dark',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#0D47A1,#FFD700)" onclick="setTheme('fintech',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#f472b6,#fbbf24)" onclick="setTheme('calido',this)" role="button" tabindex="0"></div></div></div></div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔑</span><div class="settings-body"><div class="settings-label">API Key Anthropic</div><div class="settings-sub">Torre 7 — IA</div></div><input class="api-key-input" id="bo-api-key" type="password" placeholder="sk-ant-..." oninput="updateAnthropicKey(this.value)"></div>
-    <div id="bo-api-status" style="font-size:11px;color:var(--muted);margin-top:4px;padding-left:44px"></div>
-    <button class="btn-primary" style="margin-top:1rem" onclick="saveBackoffice()">Guardar configuración</button>
   </div>
 </div>
 
@@ -553,6 +549,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 <div class="modal-overlay hidden" id="modal-module" onclick="closeModule(event)" role="dialog" aria-modal="true" aria-label="Módulo">
   <div class="modal-sheet diary-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeModule()" aria-label="Cerrar módulo">✕</button>
     <div id="modal-module-content"></div>
   </div>
 </div>
@@ -561,20 +558,20 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 <div class="modal-overlay hidden" id="modal-pet-form" onclick="closePetForm(event)" role="dialog" aria-modal="true">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:92vh;overflow-y:auto">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closePetForm()" aria-label="Cerrar">✕</button>
     <div class="modal-title" id="pet-form-title">Agregar mascota</div>
     <div class="auth-msg" id="pet-form-msg" role="alert" aria-live="polite"></div>
     <div class="pet-form-group"><label class="pet-form-label">Foto</label>
-      <div class="photo-upload-area" id="photo-upload-area" onclick="openPhotoChooser()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openPhotoChooser()">
+      <div class="photo-upload-area" id="photo-upload-area" onclick="openPhotoChooser()" role="button" tabindex="0">
         <img id="photo-preview" class="photo-preview" src="" alt="" style="display:none">
         <div class="photo-placeholder" id="photo-placeholder"><span class="photo-placeholder-icon" aria-hidden="true">📷</span><div class="photo-placeholder-text">Toca para agregar foto</div><div class="photo-placeholder-sub">Cámara o galería · máx 1MB</div></div>
         <div class="photo-overlay" aria-hidden="true"><span style="font-size:24px">📷</span><span class="photo-overlay-text">Cambiar foto</span></div>
       </div>
-      <!-- inputs separados: galería y cámara -->
       <input type="file" id="photo-file-gallery" style="display:none" accept="image/jpeg,image/png,image/webp,image/gif" onchange="handlePhotoSelect(this)">
       <input type="file" id="photo-file-camera" style="display:none" accept="image/jpeg,image/png,image/webp,image/gif" capture="environment" onchange="handlePhotoSelect(this)">
-      <!-- mini-modal selector -->
+      <!-- mini-modal selector (usa --bg2 corregido) -->
       <div id="photo-chooser" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center" onclick="closePhotoChooser(event)">
-        <div style="background:var(--card);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:var(--bg2);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px">
           <div style="font-size:15px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">Agregar foto</div>
           <button onclick="event.stopPropagation();closePhotoChooser();document.getElementById('photo-file-camera').click()" style="background:var(--glass2);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px">📷 <span>Tomar foto</span></button>
           <button onclick="event.stopPropagation();closePhotoChooser();document.getElementById('photo-file-gallery').click()" style="background:var(--glass2);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:12px">🖼️ <span>Elegir de galería</span></button>
@@ -603,9 +600,9 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       <div class="pet-form-group" style="margin-bottom:0"><label class="pet-form-label" for="pet-birthdate">Fecha de nacimiento</label><input class="pet-form-input-sm" id="pet-birthdate" type="date" oninput="updateAgePreview(this.value)"><div id="age-preview" style="margin-top:5px;min-height:22px"></div></div>
       <div class="pet-form-group" style="margin-bottom:0"><label class="pet-form-label" for="pet-weight">Peso (kg)</label><input class="pet-form-input-sm" id="pet-weight" type="number" placeholder="4.5" min="0.1" max="200" step="0.1"></div>
     </div>
-    <div class="pet-form-group" style="margin-top:1rem"><label class="pet-form-label" for="pet-allergies">Alergias</label><textarea class="pet-form-textarea" id="pet-allergies" placeholder="Pollo, maíz, pulgas..."></textarea></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="pet-behavior">Conducta</label><textarea class="pet-form-textarea" id="pet-behavior" placeholder="Ansioso con extraños, muy juguetón..."></textarea></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="pet-traits">Rasgos físicos</label><textarea class="pet-form-textarea" id="pet-traits" placeholder="Mancha blanca en el pecho, ojos azules..."></textarea></div>
+    <div class="pet-form-group" style="margin-top:1rem"><label class="pet-form-label" for="pet-allergies">Alergias conocidas</label><textarea class="pet-form-textarea" id="pet-allergies" placeholder="Pollo, maíz, pulgas..."></textarea></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="pet-behavior">Conducta general</label><textarea class="pet-form-textarea" id="pet-behavior" placeholder="Ansioso con extraños, muy juguetón..."></textarea></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="pet-traits">Rasgos físicos destacados</label><textarea class="pet-form-textarea" id="pet-traits" placeholder="Mancha blanca en el pecho, ojos azules..."></textarea></div>
     <div class="pet-form-group"><label class="pet-form-label">Color del chip</label>
       <div class="color-grid">
         <div class="color-dot active" style="background:#34d399" data-color="#34d399" onclick="selectColor(this)" role="button" tabindex="0"></div>
@@ -628,12 +625,11 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 <div class="modal-overlay hidden" id="modal-diary-form" onclick="closeDiaryForm(event)" role="dialog" aria-modal="true">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeDiaryForm()" aria-label="Cerrar">✕</button>
     <div class="modal-title" id="diary-form-title">Nueva entrada</div>
     <div class="auth-msg" id="diary-form-msg" role="alert" aria-live="polite"></div>
     <div class="pet-form-group"><label class="pet-form-label">¿Cómo estuvo hoy?</label>
-      <div class="mood-grid">
-        <button class="mood-btn active" data-mood="😄" onclick="selectMood(this)">😄</button><button class="mood-btn" data-mood="😊" onclick="selectMood(this)">😊</button><button class="mood-btn" data-mood="😌" onclick="selectMood(this)">😌</button><button class="mood-btn" data-mood="😐" onclick="selectMood(this)">😐</button><button class="mood-btn" data-mood="😰" onclick="selectMood(this)">😰</button><button class="mood-btn" data-mood="😴" onclick="selectMood(this)">😴</button><button class="mood-btn" data-mood="🤒" onclick="selectMood(this)">🤒</button><button class="mood-btn" data-mood="😤" onclick="selectMood(this)">😤</button>
-      </div>
+      <div class="mood-grid"><button class="mood-btn active" data-mood="😄" onclick="selectMood(this)">😄</button><button class="mood-btn" data-mood="😊" onclick="selectMood(this)">😊</button><button class="mood-btn" data-mood="😌" onclick="selectMood(this)">😌</button><button class="mood-btn" data-mood="😐" onclick="selectMood(this)">😐</button><button class="mood-btn" data-mood="😰" onclick="selectMood(this)">😰</button><button class="mood-btn" data-mood="😴" onclick="selectMood(this)">😴</button><button class="mood-btn" data-mood="🤒" onclick="selectMood(this)">🤒</button><button class="mood-btn" data-mood="😤" onclick="selectMood(this)">😤</button></div>
     </div>
     <div class="pet-form-group"><label class="pet-form-label" for="diary-note">¿Qué pasó hoy?</label><textarea class="diary-textarea" id="diary-note" placeholder="Jugó en el parque, comió bien..."></textarea></div>
     <div class="pet-form-group"><label class="pet-form-label" for="diary-date">Fecha</label><input class="diary-date-input" id="diary-date" type="date"></div>
@@ -647,6 +643,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 <div class="modal-overlay hidden" id="modal-vaccine-form" onclick="closeVaccineForm(event)" role="dialog" aria-modal="true">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeVaccineForm()" aria-label="Cerrar">✕</button>
     <div class="modal-title" id="vaccine-form-title">Nueva vacuna</div>
     <div class="auth-msg" id="vaccine-form-msg" role="alert" aria-live="polite"></div>
     <div class="pet-form-group"><label class="pet-form-label" for="v-name">Nombre</label><input class="pet-form-input" id="v-name" type="text" placeholder="Rabia, Parvovirus..."></div>
@@ -660,35 +657,34 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   </div>
 </div>
 
-<!-- PLANTA BAJA — MODAL REGISTRO CLÍNICO -->
-<div class="modal-overlay hidden" id="modal-record-form" onclick="closeRecordForm(event)" role="dialog" aria-modal="true">
+<!-- PLANTA BAJA — MODAL REGISTRO DE CUIDADO (nuevo — para tabs Higiene, Ejercicio, Entrenamiento) -->
+<div class="modal-overlay hidden" id="modal-care-form" onclick="closeCareForm(event)" role="dialog" aria-modal="true" aria-label="Registro de cuidado">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="modal-handle" aria-hidden="true"></div>
-    <div class="modal-title" id="record-form-title">Nuevo registro</div>
-    <div class="auth-msg" id="record-form-msg" role="alert" aria-live="polite"></div>
-    <div class="pet-form-group"><label class="pet-form-label">Tipo</label><select class="pet-form-select" id="r-type"><option value="consulta">🩺 Consulta veterinaria</option><option value="cirugia">🔪 Cirugía</option><option value="alergia">⚠️ Alergia detectada</option><option value="desparasitacion">💊 Desparasitación</option><option value="otro">📋 Otro</option></select></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="r-title">Título</label><input class="pet-form-input" id="r-title" type="text" placeholder="Consulta por tos..."></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="r-desc">Descripción</label><textarea class="pet-form-textarea" id="r-desc" placeholder="Diagnóstico, tratamiento..."></textarea></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="r-date">Fecha</label><input class="pet-form-input" id="r-date" type="date"></div>
-    <div class="pet-form-group"><label class="pet-form-label" for="r-vet">Veterinario</label><input class="pet-form-input" id="r-vet" type="text" placeholder="Dr. Martínez"></div>
-    <button class="btn-primary" id="btn-save-record" onclick="saveRecord()"><div class="btn-spinner" id="spinner-record" aria-hidden="true"></div><span id="btn-save-record-text">Guardar registro 🏥</span></button>
-    <button class="btn-danger" id="btn-delete-record" onclick="deleteRecord()" style="display:none">Eliminar registro</button>
-    <button class="btn-ghost" onclick="closeRecordForm()">Cancelar</button>
+    <button class="modal-close-btn" onclick="closeCareForm()" aria-label="Cerrar">✕</button>
+    <div class="modal-title" id="care-form-title">Nuevo registro</div>
+    <div class="auth-msg" id="care-form-msg" role="alert" aria-live="polite"></div>
+    <div class="pet-form-group"><label class="pet-form-label">Tipo</label>
+      <select class="pet-form-select" id="care-subtype"></select>
+    </div>
+    <div class="pet-form-group"><label class="pet-form-label" for="care-title">Título / descripción</label><input class="pet-form-input" id="care-title" type="text" placeholder="Ej: Baño mensual, Paseo en el parque..."></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="care-date">Fecha</label><input class="pet-form-input" id="care-date" type="date"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="care-duration">Duración (minutos, opcional)</label><input class="pet-form-input" id="care-duration" type="number" placeholder="30" min="1"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="care-notes">Notas (opcional)</label><textarea class="pet-form-textarea" id="care-notes" placeholder="Observaciones, reacciones, progreso..."></textarea></div>
+    <button class="btn-primary" id="btn-save-care" onclick="saveCare()"><div class="btn-spinner" id="spinner-care" aria-hidden="true"></div><span id="btn-save-care-text">Guardar registro</span></button>
+    <button class="btn-danger" id="btn-delete-care" onclick="deleteCare()" style="display:none">Eliminar registro</button>
+    <button class="btn-ghost" onclick="closeCareForm()">Cancelar</button>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════
-     PLANTA BAJA — MODAL CITA (Torre 4 Agenda — Ladrillo 6)
-     ════════════════════════════════════════════════════════════════ -->
+<!-- PLANTA BAJA — MODAL CITA -->
 <div class="modal-overlay hidden" id="modal-appt-form" onclick="closeApptForm(event)" role="dialog" aria-modal="true" aria-label="Nueva cita">
   <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:92vh;overflow-y:auto">
     <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeApptForm()" aria-label="Cerrar">✕</button>
     <div class="modal-title" id="appt-form-title">Nueva cita</div>
     <div class="auth-msg" id="appt-form-msg" role="alert" aria-live="polite"></div>
-
-    <!-- Tipo de cita -->
-    <div class="pet-form-group">
-      <label class="pet-form-label">Tipo de cita</label>
+    <div class="pet-form-group"><label class="pet-form-label">Tipo de cita</label>
       <select class="pet-form-select" id="appt-type">
         <option value="veterinario">🏥 Veterinario</option>
         <option value="peluqueria">✂️ Peluquería</option>
@@ -699,52 +695,22 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
         <option value="otro">📋 Otro</option>
       </select>
     </div>
-
-    <!-- Título -->
-    <div class="pet-form-group">
-      <label class="pet-form-label" for="appt-title">Título</label>
-      <input class="pet-form-input" id="appt-title" type="text" placeholder="Ej: Chequeo anual Dr. Martínez">
-    </div>
-
-    <!-- Fecha y hora -->
+    <div class="pet-form-group"><label class="pet-form-label" for="appt-title">Título</label><input class="pet-form-input" id="appt-title" type="text" placeholder="Chequeo anual Dr. Martínez"></div>
     <div class="pet-form-row">
-      <div class="pet-form-group" style="margin-bottom:0">
-        <label class="pet-form-label" for="appt-date">Fecha</label>
-        <input class="pet-form-input-sm" id="appt-date" type="date" aria-required="true">
-      </div>
-      <div class="pet-form-group" style="margin-bottom:0">
-        <label class="pet-form-label" for="appt-time">Hora (opcional)</label>
-        <input class="pet-form-input-sm" id="appt-time" type="time">
-      </div>
+      <div class="pet-form-group" style="margin-bottom:0"><label class="pet-form-label" for="appt-date">Fecha</label><input class="pet-form-input-sm" id="appt-date" type="date"></div>
+      <div class="pet-form-group" style="margin-bottom:0"><label class="pet-form-label" for="appt-time">Hora</label><input class="pet-form-input-sm" id="appt-time" type="time"></div>
     </div>
-
-    <!-- Lugar -->
-    <div class="pet-form-group" style="margin-top:1rem">
-      <label class="pet-form-label" for="appt-location">Lugar (opcional)</label>
-      <input class="pet-form-input" id="appt-location" type="text" placeholder="Clínica PetCare, Calle 5 #12-34">
-    </div>
-
-    <!-- Notas -->
-    <div class="pet-form-group">
-      <label class="pet-form-label" for="appt-notes">Notas (opcional)</label>
-      <textarea class="pet-form-textarea" id="appt-notes" placeholder="Llevar cartilla de vacunas, ayuno previo..."></textarea>
-    </div>
-
-    <!-- Recordatorio -->
-    <div class="pet-form-group">
-      <label class="pet-form-label">Recordarme con anticipación</label>
+    <div class="pet-form-group" style="margin-top:1rem"><label class="pet-form-label" for="appt-location">Lugar</label><input class="pet-form-input" id="appt-location" type="text" placeholder="Clínica PetCare, Calle 5 #12-34"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="appt-notes">Notas</label><textarea class="pet-form-textarea" id="appt-notes" placeholder="Llevar cartilla de vacunas..."></textarea></div>
+    <div class="pet-form-group"><label class="pet-form-label">Recordarme con anticipación</label>
       <div class="reminder-grid" id="reminder-grid">
         <button class="reminder-btn" data-days="0" onclick="selectReminder(this)">Mismo día</button>
         <button class="reminder-btn active" data-days="1" onclick="selectReminder(this)">1 día antes</button>
         <button class="reminder-btn" data-days="3" onclick="selectReminder(this)">3 días antes</button>
-        <button class="reminder-btn" data-days="7" onclick="selectReminder(this)">1 semana antes</button>
+        <button class="reminder-btn" data-days="7" onclick="selectReminder(this)">1 semana</button>
       </div>
     </div>
-
-    <button class="btn-primary" id="btn-save-appt" onclick="saveAppt()">
-      <div class="btn-spinner" id="spinner-appt" aria-hidden="true"></div>
-      <span id="btn-save-appt-text">Guardar cita 📅</span>
-    </button>
+    <button class="btn-primary" id="btn-save-appt" onclick="saveAppt()"><div class="btn-spinner" id="spinner-appt" aria-hidden="true"></div><span id="btn-save-appt-text">Guardar cita 📅</span></button>
     <button class="btn-danger" id="btn-delete-appt" onclick="deleteAppt()" style="display:none">Eliminar cita</button>
     <button class="btn-ghost" onclick="closeApptForm()">Cancelar</button>
   </div>
@@ -757,46 +723,90 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — CONFIGURACIÓN
      ────────────────────────────────────────────────────────────── */
-var SUPABASE_URL      = 'https://sfgsyltgpwvjxqluxvbw.supabase.co';
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZ3N5bHRncHd2anhxbHV4dmJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwOTY5MDIsImV4cCI6MjA5MDY3MjkwMn0.LD9w2MXpfiHsEhIGyZT1ZxQRe_KLV1yVXrgedThdFTE';
-var PROXY_URL         = SUPABASE_URL + '/functions/v1/rapid-service';
-var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var SUPABASE_URL      = 'https://sfgsyltgpwvjxqluxvbw.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZ3N5bHRncHd2anhxbHV4dmJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwOTY5MDIsImV4cCI6MjA5MDY3MjkwMn0.LD9w2MXpfiHsEhIGyZT1ZxQRe_KLV1yVXrgedThdFTE';
+  var PROXY_URL         = SUPABASE_URL + '/functions/v1/rapid-service';
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /* ──────────────────────────────────────────────────────────────
      PLANTA BAJA — ESTADO GLOBAL
      ────────────────────────────────────────────────────────────── */
   var currentUser = null;
-  var PETS = []; var curPetId = null; var petEditId = null;
+  var PETS=[]; var curPetId=null; var petEditId=null;
   var selEmoji='🐕'; var selSpecies='dog'; var selColor='#34d399';
   var selPhotoUrl=null; var selPhotoBlob=null;
+
   var DIARY=[]; var diaryEditId=null; var selMood='😄';
-  var VACCINES=[]; var RECORDS=[]; var vaccineEditId=null; var recordEditId=null; var clinicTab='vaccines';
+  var VACCINES=[]; var vaccineEditId=null;
+  var RECORDS=[];  /* registros de cuidado (Higiene, Ejercicio, Entrenamiento) */
+  var recordEditId=null;
+  var APPTS=[]; var apptEditId=null; var selRemDays=1;
   var IA_MESSAGES=[]; var iaIsTyping=false;
 
-  /* Torre 4 — Agenda */
-  var APPTS       = [];   /* citas de la mascota activa */
-  var apptEditId  = null;
-  var selRemDays  = 1;    /* días de recordatorio seleccionados */
-  var agendaView  = 'list'; /* 'list' | 'calendar' */
-  var calYear     = new Date().getFullYear();
-  var calMonth    = new Date().getMonth(); /* 0-based */
-  var calSelDate  = null; /* fecha seleccionada en el calendario */
+  /* Torre Historial de Cuidado — estado */
+  var careTab='preventiva'; /* 'preventiva' | 'higiene' | 'ejercicio' | 'entrenamiento' */
+  var careEditId=null;
+  var curCareTab='preventiva'; /* tab activo al abrir modal-care-form */
 
-  /* Íconos por tipo de cita */
-  var APPT_ICONS = {veterinario:'🏥',peluqueria:'✂️',vacuna:'💉',desparasitacion:'💊',entrenamiento:'🎓',paseo:'🦮',otro:'📋'};
+  /* Torre Agenda */
+  var agendaView='list';
+  var calYear=new Date().getFullYear();
+  var calMonth=new Date().getMonth();
+  var calSelDate=null;
 
-  var MODULES = [
-    {id:'dashboard',icon:'📊',name:'Dashboard',   sub:'Bienestar · orbs · semáforo',    badge:'',    badgeClass:''},
-    {id:'clinica',  icon:'🏥',name:'Clínica',     sub:'Vacunas · alergias · registros', badge:'',    badgeClass:'mb-red'},
-    {id:'diario',   icon:'📓',name:'Diario',      sub:'Timeline · humor · fotos',       badge:'',    badgeClass:'mb-teal'},
-    {id:'agenda',   icon:'📅',name:'Agenda',      sub:'Citas · recordatorios · calendario',badge:'', badgeClass:'mb-yellow'},
-    {id:'nutricion',icon:'🍽',name:'Nutrición',   sub:'Calorías · plan · marcas',       badge:'',    badgeClass:''},
-    {id:'conducta', icon:'🧠',name:'Conducta',    sub:'Temperamento · evolución',       badge:'',    badgeClass:''},
-    {id:'ia',       icon:'🩺',name:'Asistente IA',sub:'Claude · contexto clínico real', badge:'IA',  badgeClass:'mb-purple'},
-    {id:'inclusion',icon:'♿',name:'Inclusión',   sub:'QR · IoT · 4 modos',            badge:'nuevo',badgeClass:'mb-teal'}
+  var APPT_ICONS={veterinario:'🏥',peluqueria:'✂️',vacuna:'💉',desparasitacion:'💊',entrenamiento:'🎓',paseo:'🦮',otro:'📋'};
+
+  /* Subtypes por tab de cuidado */
+  var CARE_SUBTYPES={
+    higiene:[
+      {v:'bano',l:'🛁 Baño'},
+      {v:'cepillado',l:'🖌 Cepillado'},
+      {v:'oidos',l:'👂 Limpieza de oídos'},
+      {v:'dientes',l:'🦷 Limpieza de dientes'},
+      {v:'unas',l:'✂️ Corte de uñas'},
+      {v:'otro_higiene',l:'🧼 Otro'}
+    ],
+    ejercicio:[
+      {v:'paseo',l:'🦮 Paseo'},
+      {v:'carrera',l:'🏃 Carrera / trote'},
+      {v:'nado',l:'🏊 Natación'},
+      {v:'juego',l:'🎾 Juego activo'},
+      {v:'otro_ejercicio',l:'💪 Otro'}
+    ],
+    entrenamiento:[
+      {v:'comando',l:'🎓 Comandos básicos'},
+      {v:'socializacion',l:'🐾 Socialización'},
+      {v:'conducta',l:'🧠 Corrección de conducta'},
+      {v:'deporte',l:'🏅 Deporte canino'},
+      {v:'otro_entrenamiento',l:'📋 Otro'}
+    ]
+  };
+
+  var CARE_BADGE_CSS={
+    bano:'cb-bano',cepillado:'cb-cepillado',oidos:'cb-oidos',dientes:'cb-dientes',unas:'cb-cepillado',otro_higiene:'cb-otro',
+    paseo:'cb-ejercicio',carrera:'cb-ejercicio',nado:'cb-ejercicio',juego:'cb-ejercicio',otro_ejercicio:'cb-otro',
+    comando:'cb-entrenamiento',socializacion:'cb-entrenamiento',conducta:'cb-entrenamiento',deporte:'cb-entrenamiento',otro_entrenamiento:'cb-otro',
+    vacuna:'cb-vacuna',desparasitacion:'cb-desparasitacion',esterilizacion:'cb-esterilizacion'
+  };
+
+  /* ────────────────────────────────────────────────────────
+     Grilla de módulos — orden: Dashboard·Diario / Agenda·Cuidado / Nutrición·Conducta
+     ──────────────────────────────────────────────────────── */
+  var MODULES=[
+    {id:'dashboard',icon:'📊',name:'Dashboard',   sub:'Bienestar · orbs · semáforo',         badge:'',badgeClass:''},
+    {id:'diario',   icon:'📓',name:'Diario',      sub:'Timeline · humor · fotos',             badge:'',badgeClass:'mb-teal'},
+    {id:'agenda',   icon:'📅',name:'Agenda',      sub:'Citas · recordatorios · calendario',   badge:'',badgeClass:'mb-yellow'},
+    {id:'cuidado',  icon:'🏥',name:'Historial de Cuidado',sub:'Preventiva · Higiene · Ejercicio · Entrenamiento',badge:'',badgeClass:'mb-red'},
+    {id:'nutricion',icon:'🍽',name:'Nutrición',   sub:'Calorías · plan · marcas',             badge:'',badgeClass:''},
+    {id:'conducta', icon:'🧠',name:'Conducta',    sub:'Temperamento · evolución · gráficas',  badge:'',badgeClass:''}
   ];
 
-  var THEMES={mascotas:{bg:'#0d2b28',bg2:'#122e2a',teal:'#40E0D0',tealD:'#0d6b60',coral:'#FF6B6B',glass:'rgba(64,224,208,0.07)',glass2:'rgba(64,224,208,0.12)',border:'rgba(64,224,208,0.18)',border2:'rgba(64,224,208,0.28)',text:'#e0faf8',sub:'rgba(224,250,248,0.6)',muted:'rgba(224,250,248,0.35)'},calido:{bg:'#2a1628',bg2:'#2e1a2c',teal:'#f472b6',tealD:'#9d174d',coral:'#fbbf24',glass:'rgba(244,114,182,0.07)',glass2:'rgba(244,114,182,0.12)',border:'rgba(244,114,182,0.18)',border2:'rgba(244,114,182,0.28)',text:'#fce7f3',sub:'rgba(252,231,243,0.6)',muted:'rgba(252,231,243,0.35)'},dark:{bg:'#0a0a12',bg2:'#0f0f1a',teal:'#22d3ee',tealD:'#0e7490',coral:'#a855f7',glass:'rgba(34,211,238,0.07)',glass2:'rgba(34,211,238,0.12)',border:'rgba(34,211,238,0.18)',border2:'rgba(34,211,238,0.28)',text:'#e0f7ff',sub:'rgba(224,247,255,0.6)',muted:'rgba(224,247,255,0.35)'},fintech:{bg:'#0d1b3e',bg2:'#111f47',teal:'#378ADD',tealD:'#1A56A8',coral:'#FFD700',glass:'rgba(55,138,221,0.07)',glass2:'rgba(55,138,221,0.12)',border:'rgba(55,138,221,0.18)',border2:'rgba(55,138,221,0.28)',text:'#e8f0fe',sub:'rgba(232,240,254,0.6)',muted:'rgba(232,240,254,0.35)'}};
+  var THEMES={
+    mascotas:{bg:'#0d2b28',bg2:'#122e2a',teal:'#40E0D0',tealD:'#0d6b60',coral:'#FF6B6B',glass:'rgba(64,224,208,0.07)',glass2:'rgba(64,224,208,0.12)',border:'rgba(64,224,208,0.18)',border2:'rgba(64,224,208,0.28)',text:'#e0faf8',sub:'rgba(224,250,248,0.6)',muted:'rgba(224,250,248,0.35)'},
+    calido:{bg:'#2a1628',bg2:'#2e1a2c',teal:'#f472b6',tealD:'#9d174d',coral:'#fbbf24',glass:'rgba(244,114,182,0.07)',glass2:'rgba(244,114,182,0.12)',border:'rgba(244,114,182,0.18)',border2:'rgba(244,114,182,0.28)',text:'#fce7f3',sub:'rgba(252,231,243,0.6)',muted:'rgba(252,231,243,0.35)'},
+    dark:{bg:'#0a0a12',bg2:'#0f0f1a',teal:'#22d3ee',tealD:'#0e7490',coral:'#a855f7',glass:'rgba(34,211,238,0.07)',glass2:'rgba(34,211,238,0.12)',border:'rgba(34,211,238,0.18)',border2:'rgba(34,211,238,0.28)',text:'#e0f7ff',sub:'rgba(224,247,255,0.6)',muted:'rgba(224,247,255,0.35)'},
+    fintech:{bg:'#0d1b3e',bg2:'#111f47',teal:'#378ADD',tealD:'#1A56A8',coral:'#FFD700',glass:'rgba(55,138,221,0.07)',glass2:'rgba(55,138,221,0.12)',border:'rgba(55,138,221,0.18)',border2:'rgba(55,138,221,0.28)',text:'#e8f0fe',sub:'rgba(232,240,254,0.6)',muted:'rgba(232,240,254,0.35)'}
+  };
 
 
   /* ──────────────────────────────────────────────────────────────
@@ -807,9 +817,7 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     sb.auth.onAuthStateChange(function(ev,sess){if(ev==='SIGNED_IN'&&sess)currentUser=sess.user;else if(ev==='SIGNED_OUT'){currentUser=null;showScreen('screen-login');}});
   }
   document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
-
   function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.add('hidden');s.style.display='';});var el=document.getElementById(id);el.classList.remove('hidden');if(el.classList.contains('screen-page'))el.style.display='block';}
-
   function startLoadingAndGoHome(msg){var fill=document.getElementById('l-fill');fill.style.transition='none';fill.style.width='0';fill.offsetWidth;fill.style.transition='width 1.6s ease-out';if(msg)document.getElementById('loading-text').textContent=msg;showScreen('screen-loading');setTimeout(function(){fill.style.width='100%';},50);setTimeout(function(){showScreen('screen-home');initHome();},1900);}
 
 
@@ -819,7 +827,7 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.doLogin=async function(){var email=document.getElementById('l-email').value.trim();var pass=document.getElementById('l-pass').value;clearMsg();if(!email||!pass){showMsg('Completa email y contraseña.','error');return;}setLoading('login',true);try{var r=await sb.auth.signInWithPassword({email,password:pass});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('login',false);return;}currentUser=r.data.user;setLoading('login',false);startLoadingAndGoHome('Cargando tus peludos...');}catch(e){showMsg('Error de conexión.','error');setLoading('login',false);}};
   window.doRegister=async function(){var name=document.getElementById('r-name').value.trim();var email=document.getElementById('r-email').value.trim();var pass=document.getElementById('r-pass').value;clearMsg();if(!name||!email||!pass){showMsg('Completa todos los campos.','error');return;}if(pass.length<6){showMsg('Mínimo 6 caracteres.','error');return;}setLoading('register',true);try{var r=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('register',false);return;}if(r.data.user&&!r.data.session){showMsg('✅ Revisa tu email para confirmar.','success');setLoading('register',false);setTimeout(function(){switchTab('login');},2000);return;}if(r.data.session){currentUser=r.data.user;setLoading('register',false);startLoadingAndGoHome('Preparando tu cuenta...');}}catch(e){showMsg('Error de conexión.','error');setLoading('register',false);}};
   window.showForgotPassword=async function(){var email=document.getElementById('l-email').value.trim();if(!email){showMsg('Escribe tu email arriba primero.','error');return;}try{var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});if(r.error)showMsg(translateAuthError(r.error.message),'error');else showMsg('✅ Revisa tu email.','success');}catch(e){showMsg('Error de conexión.','error');}};
-  window.doLogout=async function(){['modal-settings','modal-backoffice','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-record-form','modal-appt-form'].forEach(function(id){document.getElementById(id).classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
+  window.doLogout=async function(){['modal-settings','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-care-form','modal-appt-form'].forEach(function(id){document.getElementById(id).classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
 
 
   /* ──────────────────────────────────────────────────────────────
@@ -836,270 +844,294 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   async function loadPets(){
     try{var res=await sb.from('pets').select('*').order('created_at',{ascending:true});PETS=res.error?[]:(res.data||[]);}catch(e){PETS=[];}
     curPetId=PETS.length>0?PETS[0].id:null;renderPets();
-    if(curPetId){await Promise.all([loadDiary(curPetId),loadClinical(curPetId),loadAppts(curPetId)]);updateHubAvatar();}
+    if(curPetId){await Promise.all([loadDiary(curPetId),loadVaccines(curPetId),loadRecords(curPetId),loadAppts(curPetId)]);updateHubAvatar();}
     else{renderOrbsHub([],[],[]);renderDiaryPreview([]);document.getElementById('hub-alert-card').style.display='none';document.getElementById('hub-agenda-alert').style.display='none';}
   }
 
-  function updateHubAvatar(){var avatarEl=document.getElementById('hub-avatar');var pet=getPetById(curPetId);if(pet&&pet.photo_url){avatarEl.innerHTML='<img src="'+escapeHtml(pet.photo_url)+'" alt="'+escapeHtml(pet.name)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else if(pet){avatarEl.innerHTML='<span style="font-size:24px">'+pet.emoji+'</span>';}else{avatarEl.textContent='👤';}}
+  function updateHubAvatar(){var el=document.getElementById('hub-avatar');var pet=getPetById(curPetId);if(pet&&pet.photo_url){el.innerHTML='<img src="'+escapeHtml(pet.photo_url)+'" alt="'+escapeHtml(pet.name)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else if(pet){el.innerHTML='<span style="font-size:24px">'+pet.emoji+'</span>';}else{el.textContent='👤';}}
 
   function renderPets(){
     var row=document.getElementById('pets-row');
     if(PETS.length===0){document.getElementById('g-sub').textContent='Agrega tu primera mascota 🐾';document.getElementById('orbs-section').style.display='none';document.getElementById('diario-prev').innerHTML='<div class="empty-pets"><span class="empty-icon">🐾</span><div class="empty-title">¡Bienvenido a Peludos!</div><div class="empty-sub">Agrega tu primera mascota para comenzar.</div><button class="btn-add-pet" onclick="openPetForm()">➕ Agregar mascota</button></div>';row.innerHTML='<button class="pet-chip" onclick="openPetForm()" style="padding:6px 13px">➕ <span>Agregar</span></button>';return;}
     document.getElementById('orbs-section').style.display='';
-    var html=PETS.map(function(p){var isActive=p.id===curPetId;var avatarHtml=p.photo_url?'<div class="pet-chip-avatar"><img src="'+escapeHtml(p.photo_url)+'" alt="'+escapeHtml(p.name)+'"></div>':'<div class="pet-chip-avatar" aria-hidden="true">'+p.emoji+'</div>';return '<button class="pet-chip'+(isActive?' active':'')+'" onclick="selectPet(\''+p.id+'\')" aria-label="'+escapeAttr(p.name)+'" aria-pressed="'+isActive+'">'+avatarHtml+'<span>'+escapeHtml(p.name)+'</span>'+(p.birthdate?'<span style="font-size:10px;color:var(--muted)">'+calcAge(p.birthdate,true)+'</span>':'')+'<button class="pet-edit-btn" onclick="event.stopPropagation();openPetForm(\''+p.id+'\')" aria-label="Editar '+escapeAttr(p.name)+'">✏</button></button>';}).join('');
+    var html=PETS.map(function(p){var isActive=p.id===curPetId;var av=p.photo_url?'<div class="pet-chip-avatar"><img src="'+escapeHtml(p.photo_url)+'" alt="'+escapeHtml(p.name)+'"></div>':'<div class="pet-chip-avatar" aria-hidden="true">'+p.emoji+'</div>';return '<button class="pet-chip'+(isActive?' active':'')+'\" onclick=\"selectPet(\''+p.id+'\')\" aria-label=\"'+escapeAttr(p.name)+'\" aria-pressed=\"'+isActive+'\">' +av+'<span>'+escapeHtml(p.name)+'</span>'+(p.birthdate?'<span style="font-size:10px;color:var(--muted)">'+calcAge(p.birthdate,true)+'</span>':'')+'<button class="pet-edit-btn" onclick="event.stopPropagation();openPetForm(\''+p.id+'\')" aria-label="Editar '+escapeAttr(p.name)+'">✏</button></button>';}).join('');
     html+='<button class="pet-chip" onclick="openPetForm()" style="padding:6px 13px">➕ <span>Agregar</span></button>';
     row.innerHTML=html;
     var active=getPetById(curPetId);
     if(active){var ageTxt=active.birthdate?' · '+calcAge(active.birthdate):'';document.getElementById('g-sub').textContent='Viendo perfil de '+active.name+ageTxt+' '+active.emoji;}
   }
 
-  window.selectPet=async function(id){curPetId=id;IA_MESSAGES=[];document.querySelectorAll('.pet-chip').forEach(function(c){var pet=getPetById(id);var isActive=pet&&c.getAttribute('aria-label')===pet.name;c.classList.toggle('active',isActive);c.setAttribute('aria-pressed',isActive);});var active=getPetById(id);if(active){var ageTxt=active.birthdate?' · '+calcAge(active.birthdate):'';document.getElementById('g-sub').textContent='Viendo perfil de '+active.name+ageTxt+' '+active.emoji;}updateHubAvatar();await Promise.all([loadDiary(id),loadClinical(id),loadAppts(id)]);};
+  window.selectPet=async function(id){curPetId=id;IA_MESSAGES=[];document.querySelectorAll('.pet-chip').forEach(function(c){var pet=getPetById(id);var isActive=pet&&c.getAttribute('aria-label')===pet.name;c.classList.toggle('active',isActive);c.setAttribute('aria-pressed',isActive);});var active=getPetById(id);if(active){var ageTxt=active.birthdate?' · '+calcAge(active.birthdate):'';document.getElementById('g-sub').textContent='Viendo perfil de '+active.name+ageTxt+' '+active.emoji;}updateHubAvatar();await Promise.all([loadDiary(id),loadVaccines(id),loadRecords(id),loadAppts(id)]);};
   function getPetById(id){return PETS.find(function(p){return p.id===id;})||null;}
   function calcAge(birthdate,short){if(!birthdate)return '';var birth=new Date(birthdate+'T00:00:00');var now=new Date();var months=(now.getFullYear()-birth.getFullYear())*12+(now.getMonth()-birth.getMonth());var days=Math.floor((now-birth)/(1000*60*60*24));if(days<30)return short?days+'d':days+' día'+(days===1?'':'s');if(months<12)return short?months+'m':months+' mes'+(months===1?'':'es');var years=Math.floor(months/12);var remMonths=months%12;if(short)return years+'a'+(remMonths>0?remMonths+'m':'');return years+' año'+(years===1?'':'s')+(remMonths>0?' '+remMonths+' mes'+(remMonths===1?'':'es'):'');}
   window.updateAgePreview=function(val){var el=document.getElementById('age-preview');if(!val||!el){if(el)el.innerHTML='';return;}var age=calcAge(val);el.innerHTML=age?'<span class="age-badge">'+age+' de edad</span>':'';}
 
 
   /* ──────────────────────────────────────────────────────────────
-     TORRE 4 — AGENDA INTELIGENTE (Ladrillo 6)
+     BLOQUE REUTILIZABLE — TARJETA 'INFORMACIÓN DEL FAMILIAR'
+     Se llama con los campos relevantes para cada torre
+     ────────────────────────────────────────────────────────────── */
+  function buildFamiliarCard(pet, fields){
+    /* fields: array de strings: 'alergias' | 'peso' | 'especie' | 'conducta' | 'rasgos' */
+    if(!pet) return '';
+    var avatarHtml=pet.photo_url?
+      '<div class="familiar-avatar"><img src="'+escapeHtml(pet.photo_url)+'" alt="'+escapeHtml(pet.name)+'"></div>':
+      '<div class="familiar-avatar">'+pet.emoji+'</div>';
+
+    var fieldsHtml='<div class="familiar-row">';
+    fields.forEach(function(f){
+      if(f==='alergias'&&pet.allergies){
+        fieldsHtml+='<div class="familiar-field"><div class="familiar-label">Alergias</div><div class="familiar-data">'+escapeHtml(pet.allergies)+'</div></div>';
+      }
+      if(f==='peso'&&pet.weight_kg){
+        fieldsHtml+='<div class="familiar-field"><div class="familiar-label">Peso</div><div class="familiar-data">'+pet.weight_kg+' kg</div></div>';
+      }
+      if(f==='especie'){
+        fieldsHtml+='<div class="familiar-field"><div class="familiar-label">Especie</div><div class="familiar-data">'+escapeHtml(pet.species||pet.emoji)+(pet.breed?' · '+escapeHtml(pet.breed):'')+'</div></div>';
+      }
+      if(f==='conducta'&&pet.behavior){
+        fieldsHtml+='<div class="familiar-field"><div class="familiar-label">Conducta</div><div class="familiar-data">'+escapeHtml(pet.behavior)+'</div></div>';
+      }
+      if(f==='rasgos'&&pet.traits){
+        fieldsHtml+='<div class="familiar-field"><div class="familiar-label">Rasgos físicos</div><div class="familiar-data">'+escapeHtml(pet.traits)+'</div></div>';
+      }
+    });
+    fieldsHtml+='</div>';
+
+    /* Si no hay ningún campo con dato, no mostrar la sección de campos */
+    var hasData=fields.some(function(f){
+      return (f==='alergias'&&pet.allergies)||(f==='peso'&&pet.weight_kg)||(f==='especie')||
+             (f==='conducta'&&pet.behavior)||(f==='rasgos'&&pet.traits);
+    });
+
+    return '<div class="familiar-card">'+
+      '<div class="familiar-header">'+
+        avatarHtml+
+        '<div><div class="familiar-name">'+escapeHtml(pet.name)+'</div>'+
+        '<div class="familiar-species">'+(pet.breed?escapeHtml(pet.breed)+' · ':'')+calcAge(pet.birthdate)+'</div></div>'+
+      '</div>'+
+      (hasData?fieldsHtml:'')+
+    '</div>';
+  }
+
+
+  /* ──────────────────────────────────────────────────────────────
+     TORRE 2 — HISTORIAL DE CUIDADO (demo_11, Cambio 2)
+     Tabs: 🛡 Preventiva · 🧼 Higiene · 🏃 Ejercicio · 🎓 Entrenamiento
      ────────────────────────────────────────────────────────────── */
 
-  /* Carga citas de la mascota activa */
-  async function loadAppts(petId){
-    try{
-      var res=await sb.from('appointments').select('*').eq('pet_id',petId).order('appointment_date',{ascending:true}).order('appointment_time',{ascending:true});
-      APPTS=res.error?[]:(res.data||[]);
-    }catch(e){APPTS=[];}
-    renderOrbsHub(DIARY,VACCINES,APPTS);
-    renderAgendaHubAlert(APPTS);
-    updateAgendaBadge(APPTS);
-    if(!document.getElementById('modal-module').classList.contains('hidden')){
-      renderAgendaContent();
-    }
+  async function loadVaccines(petId){
+    try{var res=await sb.from('vaccines').select('*').eq('pet_id',petId).order('applied_date',{ascending:false});VACCINES=res.error?[]:(res.data||[]);}catch(e){VACCINES=[];}
+    renderOrbsHub(DIARY,VACCINES,APPTS);renderHubVaccineAlert(VACCINES);updateCuidadoBadge(VACCINES);
   }
 
-  /* Días hasta una fecha */
-  function daysUntilDate(dateStr){if(!dateStr)return null;var today=new Date();today.setHours(0,0,0,0);return Math.round((new Date(dateStr+'T00:00:00')-today)/(1000*60*60*24));}
-
-  /* Citas próximas no completadas */
-  function getUpcomingAppts(appts,days){
-    return appts.filter(function(a){
-      if(a.completed)return false;
-      var d=daysUntilDate(a.appointment_date);
-      return d!==null&&d>=0&&d<=days;
-    });
+  async function loadRecords(petId){
+    /* health_records: registros clínicos + cuidados de Higiene/Ejercicio/Entrenamiento
+       Usamos el campo record_type para distinguir.
+       Los nuevos subtipos de cuidado se guardan con record_type = 'higiene'|'ejercicio'|'entrenamiento'
+       y description contiene el subtipo específico (bano, paseo, etc.) */
+    try{var res=await sb.from('health_records').select('*').eq('pet_id',petId).order('record_date',{ascending:false});RECORDS=res.error?[]:(res.data||[]);}catch(e){RECORDS=[];}
   }
 
-  /* Alerta de agenda en Hub (citas en los próximos 3 días) */
-  function renderAgendaHubAlert(appts){
-    var el=document.getElementById('hub-agenda-alert');
-    var upcoming=getUpcomingAppts(appts,3);
-    if(upcoming.length===0){el.style.display='none';return;}
-    el.style.display='';
-    var items=upcoming.slice(0,3).map(function(a){
-      var d=daysUntilDate(a.appointment_date);
-      var label=d===0?'Hoy':d===1?'Mañana':'En '+d+' días';
-      return '<div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:7px;padding:3px 0">'+
-        '<div style="width:6px;height:6px;border-radius:50%;background:#fbbf24;flex-shrink:0"></div>'+
-        (APPT_ICONS[a.appointment_type]||'📋')+' '+escapeHtml(a.title)+' — '+label+
-        (a.appointment_time?' a las '+a.appointment_time.slice(0,5):'')+
-      '</div>';
-    }).join('');
-    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px" aria-hidden="true">📅</span><span style="font-size:14px;font-weight:800;color:#fbbf24">'+upcoming.length+' cita'+(upcoming.length===1?' próxima':'s próximas')+'</span></div>'+items+'<div style="font-size:11px;color:var(--muted);margin-top:8px">Toca para abrir la Agenda →</div>';
-  }
+  function daysUntil(dateStr){if(!dateStr)return null;var today=new Date();today.setHours(0,0,0,0);return Math.round((new Date(dateStr+'T00:00:00')-today)/(1000*60*60*24));}
+  function getVaccineAlerts(vaccines){return vaccines.filter(function(v){if(!v.next_date)return false;var d=daysUntil(v.next_date);return d!==null&&d<=30;}).sort(function(a,b){return daysUntil(a.next_date)-daysUntil(b.next_date);});}
 
-  /* Badge en la card de Agenda del Hub */
-  function updateAgendaBadge(appts){
-    var upcoming=getUpcomingAppts(appts,7);
-    var mod=MODULES.find(function(m){return m.id==='agenda';});
-    if(mod){mod.badge=upcoming.length>0?upcoming.length+'':'';mod.badgeClass=upcoming.length>0?'mb-yellow':'';}
+  function updateCuidadoBadge(vaccines){
+    var alerts=getVaccineAlerts(vaccines);
+    var mod=MODULES.find(function(m){return m.id==='cuidado';});
+    if(mod){mod.badge=alerts.length>0?'⚠ '+alerts.length:'';mod.badgeClass=alerts.length>0?'mb-red':'';}
     renderModules();
   }
 
-  /* Orb "Agenda" en el Hub */
-  function renderOrbsHub(diary,vaccines,appts){
-    var lastMood='—';var moodColor='#40E0D0';
-    if(diary.length>0){lastMood=diary[0].mood;moodColor=['😄','😊','😌'].indexOf(lastMood)!==-1?'#f472b6':'#fbbf24';}
-    var streak=calcStreak(diary);
-    var vaccAlerts=getVaccineAlerts(vaccines);
-    var alertColor=vaccAlerts.length>0?'#fbbf24':'#34d399';
-    /* Próxima cita */
-    var nextAppt=appts?appts.filter(function(a){return!a.completed&&daysUntilDate(a.appointment_date)>=0;}).sort(function(a,b){return a.appointment_date>b.appointment_date?1:-1;})[0]:null;
-    var agendaVal=nextAppt?'📅':'—';
-    var agendaTrend=nextAppt?(daysUntilDate(nextAppt.appointment_date)===0?'¡Hoy!':'en '+daysUntilDate(nextAppt.appointment_date)+'d'):'sin citas';
-    var agendaColor=nextAppt&&daysUntilDate(nextAppt.appointment_date)<=3?'#fbbf24':'#40E0D0';
-    document.getElementById('orbs-row').innerHTML=
-      buildOrb(lastMood==='—'?'—':lastMood,'Emoción',lastMood==='—'?'sin datos':'último registro',moodColor)+
-      buildOrb(streak>0?streak+'d':'0d','Racha',streak>=3?'🔥 en racha':'del diario',streak>=3?'#40E0D0':'#fbbf24')+
-      buildOrb(vaccAlerts.length>0?'⚠ '+vaccAlerts.length:'✓','Alertas',vaccAlerts.length>0?vaccAlerts.length+' vacuna'+(vaccAlerts.length===1?'':'s'):'todo ok',alertColor)+
-      buildOrb(agendaVal,'Agenda',agendaTrend,agendaColor);
+  function renderHubVaccineAlert(vaccines){
+    var el=document.getElementById('hub-alert-card');
+    var alerts=getVaccineAlerts(vaccines);
+    if(alerts.length===0){el.style.display='none';return;}
+    el.style.display='';
+    var items=alerts.slice(0,3).map(function(v){var d=daysUntil(v.next_date);var l=d<0?'Vencida hace '+Math.abs(d)+'d':d===0?'Vence hoy':'Vence en '+d+'d';return '<div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:7px;padding:3px 0"><div style="width:6px;height:6px;border-radius:50%;background:var(--coral);flex-shrink:0"></div>'+escapeHtml(v.vaccine_name)+' — '+l+'</div>';}).join('');
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px" aria-hidden="true">🚨</span><span style="font-size:14px;font-weight:800;color:#ff9a9a">'+alerts.length+' vacuna'+(alerts.length===1?' próxima':'s próximas')+' a vencer</span></div>'+items+'<div style="font-size:11px;color:var(--muted);margin-top:8px">Toca para ver el Historial de Cuidado →</div>';
   }
 
-
-  /* ── Render del contenido de la Torre 4 ── */
-  function renderAgendaContent(){
+  function renderCuidadoContent(){
     var pet=getPetById(curPetId);
     if(!pet){document.getElementById('modal-module-content').innerHTML='<div style="text-align:center;padding:2rem">Selecciona una mascota primero.</div>';return;}
 
+    /* Tarjeta Familiar: alergias + rasgos + conducta (Cambio 1) */
+    var familiarCard=buildFamiliarCard(pet,['alergias','rasgos','conducta']);
+
+    var html=familiarCard+
+      '<div class="care-tabs">'+
+        '<button class="care-tab'+(careTab==='preventiva'?' active':'')+'\" onclick="switchCareTab(\'preventiva\')">🛡 Preventiva</button>'+
+        '<button class="care-tab'+(careTab==='higiene'?' active':'')+'\" onclick="switchCareTab(\'higiene\')">🧼 Higiene</button>'+
+        '<button class="care-tab'+(careTab==='ejercicio'?' active':'')+'\" onclick="switchCareTab(\'ejercicio\')">🏃 Ejercicio</button>'+
+        '<button class="care-tab'+(careTab==='entrenamiento'?' active':'')+'\" onclick="switchCareTab(\'entrenamiento\')">🎓 Entrenamiento</button>'+
+      '</div>';
+
+    if(careTab==='preventiva'){
+      html+=renderPreventivaTab(pet);
+    } else {
+      html+=renderCareTab(careTab,pet);
+    }
+    document.getElementById('modal-module-content').innerHTML=html;
+  }
+
+  window.switchCareTab=function(tab){careTab=tab;renderCuidadoContent();};
+
+  /* Tab Preventiva: Vacunas + registros de desparasitación/esterilización */
+  function renderPreventivaTab(pet){
+    var html='<button class="care-fab" onclick="openVaccineForm()">💉 Nueva vacuna</button>';
+    if(VACCINES.length===0){
+      html+='<div class="care-empty"><span class="care-empty-icon">💉</span><div class="care-empty-title">Sin registros preventivos</div><div class="care-empty-sub">Registra las vacunas y tratamientos preventivos de '+escapeHtml(pet.name)+'.</div></div>';
+    }else{
+      html+=VACCINES.map(function(v){
+        var days=daysUntil(v.next_date);var isAlert=days!==null&&days<=30;
+        var badgeText='',badgeClass='badge-none';
+        if(v.next_date){if(days<0){badgeText='Vencida';badgeClass='badge-alert';}else if(days===0){badgeText='Hoy';badgeClass='badge-alert';}else if(days<=30){badgeText='En '+days+'d';badgeClass='badge-alert';}else{badgeText='En '+days+'d';badgeClass='badge-ok';}}
+        return '<div class="vaccine-card'+(isAlert?' alert':v.next_date?' ok':'')+'\" onclick="openVaccineForm(\''+v.id+'\')">'+
+          '<div class="vaccine-header"><div class="vaccine-name">'+escapeHtml(v.vaccine_name)+'</div>'+
+          (v.next_date?'<span class="vaccine-badge '+badgeClass+'">'+badgeText+'</span>':'<span class="vaccine-badge badge-none">Sin próxima dosis</span>')+
+          '</div><div class="vaccine-meta"><span>📅 '+formatDateShort(v.applied_date)+'</span>'+(v.next_date?'<span>🔔 '+formatDateShort(v.next_date)+'</span>':'')+'</div>'+
+          (v.vet_name?'<div class="vaccine-vet">👨‍⚕️ '+escapeHtml(v.vet_name)+'</div>':'')+
+        '</div>';
+      }).join('');
+    }
+    return html;
+  }
+
+  /* Tabs Higiene / Ejercicio / Entrenamiento */
+  function renderCareTab(tab, pet){
+    var tabRecords=RECORDS.filter(function(r){return r.record_type===tab;});
+    var tabIcons={higiene:'🧼',ejercicio:'🏃',entrenamiento:'🎓'};
+    var tabLabels={higiene:'higiene',ejercicio:'ejercicio',entrenamiento:'entrenamiento'};
+    var html='<button class="care-fab" onclick="openCareForm(\''+tab+'\')">➕ Nuevo registro</button>';
+    if(tabRecords.length===0){
+      html+='<div class="care-empty"><span class="care-empty-icon">'+(tabIcons[tab]||'📋')+'</span>'+
+        '<div class="care-empty-title">Sin registros de '+tabLabels[tab]+'</div>'+
+        '<div class="care-empty-sub">Empieza a llevar el historial de '+(tab==='higiene'?'higiene':'actividad')+' de '+escapeHtml(pet.name)+'.</div></div>';
+    }else{
+      html+=tabRecords.map(function(r){
+        var badgeCss=CARE_BADGE_CSS[r.description]||'cb-otro';
+        return '<div class="care-card" onclick="openCareForm(\''+tab+'\',\''+r.id+'\')">'+
+          '<div class="care-card-header">'+
+            '<span class="care-card-icon">'+(tabIcons[tab]||'📋')+'</span>'+
+            '<span class="care-card-title">'+escapeHtml(r.title)+'</span>'+
+            (r.description?'<span class="care-badge '+badgeCss+'">'+escapeHtml(r.description)+'</span>':'')+
+            '<span class="care-card-date">'+formatDateShort(r.record_date)+'</span>'+
+          '</div>'+
+          (r.vet_name?'<div class="care-card-note">'+escapeHtml(r.vet_name)+'</div>':'')+/* reutilizamos vet_name para duración */
+        '</div>';
+      }).join('');
+    }
+    return html;
+  }
+
+  /* Formulario de cuidado (Higiene / Ejercicio / Entrenamiento) */
+  window.openCareForm=function(tab,id){
+    curCareTab=tab;careEditId=id||null;var isEdit=!!careEditId;
+    /* Popula el select con los subtipos del tab */
+    var sel=document.getElementById('care-subtype');
+    sel.innerHTML=(CARE_SUBTYPES[tab]||[]).map(function(s){return '<option value="'+s.v+'">'+s.l+'</option>';}).join('');
+    document.getElementById('care-title').value='';
+    document.getElementById('care-date').value=todayISO();
+    document.getElementById('care-duration').value='';
+    document.getElementById('care-notes').value='';
+    document.getElementById('care-form-msg').className='auth-msg';
+    var tabTitles={higiene:'🧼 Higiene',ejercicio:'🏃 Ejercicio',entrenamiento:'🎓 Entrenamiento'};
+    document.getElementById('care-form-title').textContent=isEdit?'Editar registro':'Nuevo registro — '+tabTitles[tab];
+    document.getElementById('btn-save-care-text').textContent=isEdit?'Guardar cambios':'Guardar registro';
+    document.getElementById('btn-delete-care').style.display=isEdit?'':'none';
+    if(isEdit){var r=RECORDS.find(function(x){return x.id===careEditId;});if(r){if(r.description)sel.value=r.description;document.getElementById('care-title').value=r.title||'';document.getElementById('care-date').value=r.record_date||todayISO();document.getElementById('care-duration').value=r.vet_name||'';/* vet_name reutilizado para duración */document.getElementById('care-notes').value=r.notes||'';}}
+    document.getElementById('modal-care-form').classList.remove('hidden');
+    setTimeout(function(){document.getElementById('care-title').focus();},300);
+  };
+  window.closeCareForm=function(e){if(!e||e.target===document.getElementById('modal-care-form'))document.getElementById('modal-care-form').classList.add('hidden');};
+  window.saveCare=async function(){
+    var title=document.getElementById('care-title').value.trim();
+    var date=document.getElementById('care-date').value;
+    if(!title||!date){showCareMsg('Título y fecha son obligatorios.','error');return;}
+    setFormLoading('care',true);
+    var data={record_type:curCareTab,title,description:document.getElementById('care-subtype').value||null,record_date:date,vet_name:document.getElementById('care-duration').value||null,/* reutilizamos vet_name para duración */notes:document.getElementById('care-notes').value.trim()||null};
+    try{var res=careEditId?await sb.from('health_records').update(data).eq('id',careEditId):await sb.from('health_records').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showCareMsg('Error: '+res.error.message,'error');setFormLoading('care',false);return;}document.getElementById('modal-care-form').classList.add('hidden');setFormLoading('care',false);await loadRecords(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showCareMsg('Error de conexión.','error');setFormLoading('care',false);}
+  };
+  window.deleteCare=async function(){if(!careEditId)return;var r=RECORDS.find(function(x){return x.id===careEditId;});if(!confirm('¿Eliminar el registro "'+r.title+'"?'))return;setFormLoading('care',true);try{var res=await sb.from('health_records').delete().eq('id',careEditId);if(res.error){showCareMsg('Error: '+res.error.message,'error');setFormLoading('care',false);return;}document.getElementById('modal-care-form').classList.add('hidden');setFormLoading('care',false);await loadRecords(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showCareMsg('Error de conexión.','error');setFormLoading('care',false);}};
+  function showCareMsg(text,type){var el=document.getElementById('care-form-msg');el.textContent=text;el.className='auth-msg '+(type||'error');}
+
+
+  /* ──────────────────────────────────────────────────────────────
+     TORRE 4 — AGENDA
+     ────────────────────────────────────────────────────────────── */
+  async function loadAppts(petId){
+    try{var res=await sb.from('appointments').select('*').eq('pet_id',petId).order('appointment_date',{ascending:true}).order('appointment_time',{ascending:true});APPTS=res.error?[]:(res.data||[]);}catch(e){APPTS=[];}
+    renderOrbsHub(DIARY,VACCINES,APPTS);renderAgendaHubAlert(APPTS);updateAgendaBadge(APPTS);
+    if(!document.getElementById('modal-module').classList.contains('hidden'))renderAgendaContent();
+  }
+
+  function daysUntilDate(dateStr){if(!dateStr)return null;var today=new Date();today.setHours(0,0,0,0);return Math.round((new Date(dateStr+'T00:00:00')-today)/(1000*60*60*24));}
+  function getUpcomingAppts(appts,days){return appts.filter(function(a){if(a.completed)return false;var d=daysUntilDate(a.appointment_date);return d!==null&&d>=0&&d<=days;});}
+
+  function renderAgendaHubAlert(appts){
+    var el=document.getElementById('hub-agenda-alert');var upcoming=getUpcomingAppts(appts,3);
+    if(upcoming.length===0){el.style.display='none';return;}el.style.display='';
+    var items=upcoming.slice(0,3).map(function(a){var d=daysUntilDate(a.appointment_date);var label=d===0?'Hoy':d===1?'Mañana':'En '+d+' días';return '<div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:7px;padding:3px 0"><div style="width:6px;height:6px;border-radius:50%;background:#fbbf24;flex-shrink:0"></div>'+(APPT_ICONS[a.appointment_type]||'📋')+' '+escapeHtml(a.title)+' — '+label+(a.appointment_time?' a las '+a.appointment_time.slice(0,5):'')+  '</div>';}).join('');
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px" aria-hidden="true">📅</span><span style="font-size:14px;font-weight:800;color:#fbbf24">'+upcoming.length+' cita'+(upcoming.length===1?' próxima':'s próximas')+'</span></div>'+items+'<div style="font-size:11px;color:var(--muted);margin-top:8px">Toca para abrir la Agenda →</div>';
+  }
+
+  function updateAgendaBadge(appts){var upcoming=getUpcomingAppts(appts,7);var mod=MODULES.find(function(m){return m.id==='agenda';});if(mod){mod.badge=upcoming.length>0?upcoming.length+'':'';mod.badgeClass=upcoming.length>0?'mb-yellow':'';}renderModules();}
+
+  function renderAgendaContent(){
+    var pet=getPetById(curPetId);
+    if(!pet){document.getElementById('modal-module-content').innerHTML='<div style="text-align:center;padding:2rem">Selecciona una mascota primero.</div>';return;}
     var html=
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">'+
         (pet.photo_url?'<img src="'+escapeHtml(pet.photo_url)+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover" alt="">':'<span style="font-size:20px">'+pet.emoji+'</span>')+
         ' <span style="font-size:15px;font-weight:800;color:var(--teal-l)">Agenda de '+escapeHtml(pet.name)+'</span>'+
       '</div>'+
-      /* Tabs vista */
-      '<div class="agenda-tabs">'+
-        '<button class="agenda-tab'+(agendaView==='list'?' active':'')+'" onclick="switchAgendaView(\'list\')">📋 Lista</button>'+
-        '<button class="agenda-tab'+(agendaView==='calendar'?' active':'')+'" onclick="switchAgendaView(\'calendar\')">📅 Calendario</button>'+
-      '</div>'+
-      /* FAB */
+      '<div class="agenda-tabs"><button class="agenda-tab'+(agendaView==='list'?' active':'')+'\" onclick="switchAgendaView(\'list\')">📋 Lista</button>'+
+      '<button class="agenda-tab'+(agendaView==='calendar'?' active':'')+'\" onclick="switchAgendaView(\'calendar\')">📅 Calendario</button></div>'+
       '<button class="agenda-fab" onclick="openApptForm()">➕ Nueva cita</button>';
-
-    if(agendaView==='list'){
-      html+=renderAgendaList();
-    } else {
-      html+=renderAgendaCalendar();
-    }
-
+    html+=agendaView==='list'?renderAgendaList():renderAgendaCalendar();
     document.getElementById('modal-module-content').innerHTML=html;
   }
 
   window.switchAgendaView=function(view){agendaView=view;renderAgendaContent();};
 
-  /* Vista de lista */
   function renderAgendaList(){
-    if(APPTS.length===0){
-      return '<div class="agenda-empty"><span class="agenda-empty-icon">📅</span><div class="agenda-empty-title">Sin citas programadas</div><div class="agenda-empty-sub">Agrega la primera cita de '+escapeHtml((getPetById(curPetId)||{}).name||'tu mascota')+' para empezar a llevar su agenda.</div></div>';
-    }
-
-    /* Separa próximas y completadas */
-    var upcoming=APPTS.filter(function(a){return!a.completed;});
-    var completed=APPTS.filter(function(a){return a.completed;});
-    var html='';
-
-    if(upcoming.length>0){
-      html+='<div class="appt-group-label">Próximas ('+upcoming.length+')</div>';
-      html+=upcoming.map(function(a){return renderApptCard(a);}).join('');
-    }
-    if(completed.length>0){
-      html+='<div class="appt-group-label" style="margin-top:1rem">Completadas ('+completed.length+')</div>';
-      html+=completed.map(function(a){return renderApptCard(a);}).join('');
-    }
+    if(APPTS.length===0){var pet=getPetById(curPetId);return '<div class="agenda-empty"><span style="font-size:44px;display:block;margin-bottom:12px;opacity:.6">📅</span><div style="font-size:16px;font-weight:800;margin-bottom:6px">Sin citas programadas</div><div style="font-size:13px;color:var(--sub)">Agrega la primera cita de '+escapeHtml((pet||{}).name||'tu mascota')+'.</div></div>';}
+    var upcoming=APPTS.filter(function(a){return!a.completed;});var completed=APPTS.filter(function(a){return a.completed;});var html='';
+    if(upcoming.length>0){html+='<div class="appt-group-label">Próximas ('+upcoming.length+')</div>';html+=upcoming.map(renderApptCard).join('');}
+    if(completed.length>0){html+='<div class="appt-group-label" style="margin-top:1rem">Completadas ('+completed.length+')</div>';html+=completed.map(renderApptCard).join('');}
     return html;
   }
 
   function renderApptCard(a){
-    var days=daysUntilDate(a.appointment_date);
-    var isUrgent=!a.completed&&days!==null&&days<=1&&days>=0;
-    var isSoon=!a.completed&&days!==null&&days<=3&&days>1;
+    var days=daysUntilDate(a.appointment_date);var isUrgent=!a.completed&&days!==null&&days<=1&&days>=0;var isSoon=!a.completed&&days!==null&&days<=3&&days>1;
     var badgeText='',badgeClass='';
-    if(a.completed){badgeText='✓ Completada';badgeClass='ab-done';}
-    else if(days<0){badgeText='Vencida hace '+Math.abs(days)+'d';badgeClass='ab-urgent';}
-    else if(days===0){badgeText='¡Hoy!';badgeClass='ab-urgent';}
-    else if(days===1){badgeText='Mañana';badgeClass='ab-soon';}
-    else if(days<=7){badgeText='En '+days+' días';badgeClass='ab-soon';}
-    else{badgeText='En '+days+' días';badgeClass='ab-ok';}
-
-    return '<div class="appt-card'+(a.completed?' completed':'')+(isUrgent?' urgent':'')+(isSoon?' soon':'')+'" onclick="openApptForm(\''+a.id+'\')">'+
-      '<div class="appt-header">'+
-        '<span class="appt-type-icon" aria-hidden="true">'+(APPT_ICONS[a.appointment_type]||'📋')+'</span>'+
-        '<div class="appt-body">'+
-          '<div class="appt-title'+(a.completed?' done':'')+'">'+escapeHtml(a.title)+'</div>'+
-          '<div class="appt-meta">'+
-            '<span class="appt-meta-item">📅 '+formatDateShort(a.appointment_date)+'</span>'+
-            (a.appointment_time?'<span class="appt-meta-item">🕐 '+a.appointment_time.slice(0,5)+'</span>':'')+
-            (a.location?'<span class="appt-meta-item">📍 '+escapeHtml(a.location)+'</span>':'')+
-          '</div>'+
-        '</div>'+
-        '<span class="appt-badge '+badgeClass+'">'+badgeText+'</span>'+
-      '</div>'+
-      /* Check de completado — stopPropagation para no abrir el editor */
+    if(a.completed){badgeText='✓ Completada';badgeClass='ab-done';}else if(days<0){badgeText='Vencida hace '+Math.abs(days)+'d';badgeClass='ab-urgent';}else if(days===0){badgeText='¡Hoy!';badgeClass='ab-urgent';}else if(days===1){badgeText='Mañana';badgeClass='ab-soon';}else if(days<=7){badgeText='En '+days+' días';badgeClass='ab-soon';}else{badgeText='En '+days+' días';badgeClass='ab-ok';}
+    return '<div class="appt-card'+(a.completed?' completed':'')+(isUrgent?' urgent':'')+(isSoon?' soon':'')+'\" onclick="openApptForm(\''+a.id+'\')">'+
+      '<div class="appt-header"><span class="appt-type-icon" aria-hidden="true">'+(APPT_ICONS[a.appointment_type]||'📋')+'</span>'+
+      '<div class="appt-body"><div class="appt-title'+(a.completed?' done':'')+'">'+escapeHtml(a.title)+'</div>'+
+      '<div class="appt-meta"><span class="appt-meta-item">📅 '+formatDateShort(a.appointment_date)+'</span>'+(a.appointment_time?'<span class="appt-meta-item">🕐 '+a.appointment_time.slice(0,5)+'</span>':'')+(a.location?'<span class="appt-meta-item">📍 '+escapeHtml(a.location)+'</span>':'')+'</div></div>'+
+      '<span class="appt-badge '+badgeClass+'">'+badgeText+'</span></div>'+
       '<div style="display:flex;justify-content:flex-end;margin-top:8px">'+
-        '<button class="appt-check'+(a.completed?' done':'')+'" onclick="event.stopPropagation();toggleApptComplete(\''+a.id+'\','+(!a.completed)+')" aria-label="'+(a.completed?'Marcar pendiente':'Marcar completada')+'" title="'+(a.completed?'Marcar como pendiente':'Marcar como completada')+'">'+
-          (a.completed?'✓':'○')+
-        '</button>'+
-      '</div>'+
-    '</div>';
+        '<button class="appt-check'+(a.completed?' done':'')+'\" onclick="event.stopPropagation();toggleApptComplete(\''+a.id+'\','+(!a.completed)+')" aria-label="'+(a.completed?'Marcar pendiente':'Marcar completada')+'">'+
+          (a.completed?'✓':'○')+'</button></div></div>';
   }
 
-  /* Toggle de completado */
-  window.toggleApptComplete=async function(id,completed){
-    try{
-      var res=await sb.from('appointments').update({completed}).eq('id',id);
-      if(res.error){alert('Error: '+res.error.message);return;}
-      await loadAppts(curPetId);
-      renderAgendaContent();
-    }catch(e){alert('Error de conexión.');}
-  };
+  window.toggleApptComplete=async function(id,completed){try{var res=await sb.from('appointments').update({completed}).eq('id',id);if(res.error){alert('Error: '+res.error.message);return;}await loadAppts(curPetId);renderAgendaContent();}catch(e){alert('Error de conexión.');}};
 
-  /* Vista de calendario */
   function renderAgendaCalendar(){
     var monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     var dayNames=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     var today=new Date();today.setHours(0,0,0,0);
-    var firstDay=new Date(calYear,calMonth,1);
-    var lastDay=new Date(calYear,calMonth+1,0);
-
-    /* Mapa de citas por fecha del mes */
+    var firstDay=new Date(calYear,calMonth,1);var lastDay=new Date(calYear,calMonth+1,0);
     var apptsByDate={};
-    APPTS.forEach(function(a){
-      var d=new Date(a.appointment_date+'T00:00:00');
-      if(d.getFullYear()===calYear&&d.getMonth()===calMonth){
-        var key=a.appointment_date;
-        if(!apptsByDate[key])apptsByDate[key]=[];
-        apptsByDate[key].push(a);
-      }
-    });
-
-    var html='<div class="cal-header">'+
-      '<button class="cal-nav" onclick="calPrev()" aria-label="Mes anterior">‹</button>'+
-      '<span class="cal-month">'+monthNames[calMonth]+' '+calYear+'</span>'+
-      '<button class="cal-nav" onclick="calNext()" aria-label="Mes siguiente">›</button>'+
-    '</div>';
-
-    /* Nombres de días */
-    html+='<div class="cal-grid">';
-    dayNames.forEach(function(d){html+='<div class="cal-day-name">'+d+'</div>';});
-
-    /* Días vacíos al inicio */
-    for(var i=0;i<firstDay.getDay();i++) html+='<div class="cal-day other-month"></div>';
-
-    /* Días del mes */
-    for(var day=1;day<=lastDay.getDate();day++){
-      var dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      var dayDate=new Date(dateStr+'T00:00:00');
-      var isToday=dayDate.toDateString()===today.toDateString();
-      var isSel=calSelDate===dateStr;
-      var hasAppts=apptsByDate[dateStr]&&apptsByDate[dateStr].length>0;
-      var hasAlert=hasAppts&&apptsByDate[dateStr].some(function(a){return!a.completed;});
-      var classes=['cal-day'];
-      if(isToday)classes.push('today');
-      if(isSel)classes.push('selected');
-      if(hasAppts&&hasAlert)classes.push('has-alert');
-      else if(hasAppts)classes.push('has-event');
-      html+='<div class="'+classes.join(' ')+'" onclick="selectCalDay(\''+dateStr+'\')">'+day+'</div>';
-    }
+    APPTS.forEach(function(a){var d=new Date(a.appointment_date+'T00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){var key=a.appointment_date;if(!apptsByDate[key])apptsByDate[key]=[];apptsByDate[key].push(a);}});
+    var html='<div class="cal-header"><button class="cal-nav" onclick="calPrev()">‹</button><span class="cal-month">'+monthNames[calMonth]+' '+calYear+'</span><button class="cal-nav" onclick="calNext()">›</button></div>';
+    html+='<div class="cal-grid">';dayNames.forEach(function(d){html+='<div class="cal-day-name">'+d+'</div>';});
+    for(var i=0;i<firstDay.getDay();i++)html+='<div class="cal-day other-month"></div>';
+    for(var day=1;day<=lastDay.getDate();day++){var dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');var dayDate=new Date(dateStr+'T00:00:00');var isToday=dayDate.toDateString()===today.toDateString();var isSel=calSelDate===dateStr;var hasAppts=apptsByDate[dateStr]&&apptsByDate[dateStr].length>0;var hasAlert=hasAppts&&apptsByDate[dateStr].some(function(a){return!a.completed;});var classes=['cal-day'];if(isToday)classes.push('today');if(isSel)classes.push('selected');if(hasAppts&&hasAlert)classes.push('has-alert');else if(hasAppts)classes.push('has-event');html+='<div class="'+classes.join(' ')+'\" onclick="selectCalDay(\''+dateStr+'\')">'+day+'</div>';}
     html+='</div>';
-
-    /* Detalle del día seleccionado */
-    if(calSelDate){
-      var selAppts=apptsByDate[calSelDate]||[];
-      html+='<div class="cal-day-detail">'+
-        '<div class="cal-day-detail-title">'+formatDateLong(calSelDate)+'</div>';
-      if(selAppts.length===0){
-        html+='<div class="cal-no-events">Sin citas este día</div>';
-      } else {
-        selAppts.forEach(function(a){
-          html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openApptForm(\''+a.id+'\')">'+
-            '<span style="font-size:18px">'+(APPT_ICONS[a.appointment_type]||'📋')+'</span>'+
-            '<div style="flex:1"><div style="font-size:13px;font-weight:800'+(a.completed?';text-decoration:line-through;color:var(--muted)':'')+'">'+escapeHtml(a.title)+'</div>'+
-            (a.appointment_time?'<div style="font-size:11px;color:var(--sub)">🕐 '+a.appointment_time.slice(0,5)+'</div>':'')+
-            '</div>'+
-            (a.completed?'<span style="font-size:12px;color:var(--teal-l)">✓</span>':'')+
-          '</div>';
-        });
-      }
-      html+='</div>';
-    }
-
+    if(calSelDate){var selAppts=apptsByDate[calSelDate]||[];html+='<div class="cal-day-detail"><div class="cal-day-detail-title">'+formatDateLong(calSelDate)+'</div>';if(selAppts.length===0){html+='<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px 0">Sin citas este día</div>';}else{selAppts.forEach(function(a){html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openApptForm(\''+a.id+'\')">'+'<span style="font-size:18px">'+(APPT_ICONS[a.appointment_type]||'📋')+'</span>'+'<div style="flex:1"><div style="font-size:13px;font-weight:800'+(a.completed?';text-decoration:line-through;color:var(--muted)':'')+'\">'+escapeHtml(a.title)+'</div>'+(a.appointment_time?'<div style="font-size:11px;color:var(--sub)">🕐 '+a.appointment_time.slice(0,5)+'</div>':'')+'</div>'+(a.completed?'<span style="font-size:12px;color:var(--teal-l)">✓</span>':'')+'</div>';});} html+='</div>';}
     return html;
   }
 
@@ -1107,107 +1139,22 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.calNext=function(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderAgendaContent();};
   window.selectCalDay=function(dateStr){calSelDate=calSelDate===dateStr?null:dateStr;renderAgendaContent();};
 
-
-  /* ── Formulario de cita ── */
   window.openApptForm=function(id){
     apptEditId=id||null;var isEdit=!!apptEditId;
-    document.getElementById('appt-type').value='veterinario';
-    document.getElementById('appt-title').value='';
-    document.getElementById('appt-date').value=todayISO();
-    document.getElementById('appt-time').value='';
-    document.getElementById('appt-location').value='';
-    document.getElementById('appt-notes').value='';
-    document.getElementById('appt-form-msg').className='auth-msg';
-    document.getElementById('appt-form-title').textContent=isEdit?'Editar cita':'Nueva cita';
-    document.getElementById('btn-save-appt-text').textContent=isEdit?'Guardar cambios 📅':'Guardar cita 📅';
-    document.getElementById('btn-delete-appt').style.display=isEdit?'':'none';
+    document.getElementById('appt-type').value='veterinario';document.getElementById('appt-title').value='';document.getElementById('appt-date').value=todayISO();document.getElementById('appt-time').value='';document.getElementById('appt-location').value='';document.getElementById('appt-notes').value='';document.getElementById('appt-form-msg').className='auth-msg';
+    document.getElementById('appt-form-title').textContent=isEdit?'Editar cita':'Nueva cita';document.getElementById('btn-save-appt-text').textContent=isEdit?'Guardar cambios 📅':'Guardar cita 📅';document.getElementById('btn-delete-appt').style.display=isEdit?'':'none';
     selRemDays=1;resetReminderGrid();
-    if(isEdit){
-      var a=APPTS.find(function(x){return x.id===apptEditId;});
-      if(a){
-        document.getElementById('appt-type').value=a.appointment_type;
-        document.getElementById('appt-title').value=a.title;
-        document.getElementById('appt-date').value=a.appointment_date;
-        document.getElementById('appt-time').value=a.appointment_time||'';
-        document.getElementById('appt-location').value=a.location||'';
-        document.getElementById('appt-notes').value=a.notes||'';
-        selRemDays=a.reminder_days||1;
-        preselectReminder(selRemDays);
-      }
-    }
+    if(isEdit){var a=APPTS.find(function(x){return x.id===apptEditId;});if(a){document.getElementById('appt-type').value=a.appointment_type;document.getElementById('appt-title').value=a.title;document.getElementById('appt-date').value=a.appointment_date;document.getElementById('appt-time').value=a.appointment_time||'';document.getElementById('appt-location').value=a.location||'';document.getElementById('appt-notes').value=a.notes||'';selRemDays=a.reminder_days||1;preselectReminder(selRemDays);}}
     document.getElementById('modal-appt-form').classList.remove('hidden');
     setTimeout(function(){document.getElementById('appt-title').focus();},300);
   };
-
   window.closeApptForm=function(e){if(!e||e.target===document.getElementById('modal-appt-form'))document.getElementById('modal-appt-form').classList.add('hidden');};
-
-  window.saveAppt=async function(){
-    var title=document.getElementById('appt-title').value.trim();
-    var date=document.getElementById('appt-date').value;
-    if(!title||!date){showApptMsg('Título y fecha son obligatorios.','error');return;}
-    setApptLoading(true);
-    var data={
-      appointment_type:document.getElementById('appt-type').value,
-      title,
-      appointment_date:date,
-      appointment_time:document.getElementById('appt-time').value||null,
-      location:document.getElementById('appt-location').value.trim()||null,
-      notes:document.getElementById('appt-notes').value.trim()||null,
-      reminder_days:selRemDays
-    };
-    try{
-      var res=apptEditId?await sb.from('appointments').update(data).eq('id',apptEditId):await sb.from('appointments').insert({...data,user_id:currentUser.id,pet_id:curPetId});
-      if(res.error){showApptMsg('Error: '+res.error.message,'error');setApptLoading(false);return;}
-      document.getElementById('modal-appt-form').classList.add('hidden');
-      setApptLoading(false);
-      await loadAppts(curPetId);
-      renderAgendaContent();
-    }catch(e){showApptMsg('Error de conexión.','error');setApptLoading(false);}
-  };
-
-  window.deleteAppt=async function(){
-    if(!apptEditId)return;
-    var a=APPTS.find(function(x){return x.id===apptEditId;});
-    if(!confirm('¿Eliminar la cita "'+a.title+'"?'))return;
-    setApptLoading(true);
-    try{
-      var res=await sb.from('appointments').delete().eq('id',apptEditId);
-      if(res.error){showApptMsg('Error: '+res.error.message,'error');setApptLoading(false);return;}
-      document.getElementById('modal-appt-form').classList.add('hidden');
-      setApptLoading(false);
-      await loadAppts(curPetId);
-      renderAgendaContent();
-    }catch(e){showApptMsg('Error de conexión.','error');setApptLoading(false);}
-  };
-
-  /* Selector de recordatorio */
+  window.saveAppt=async function(){var title=document.getElementById('appt-title').value.trim();var date=document.getElementById('appt-date').value;if(!title||!date){showApptMsg('Título y fecha son obligatorios.','error');return;}setFormLoading('appt',true);var data={appointment_type:document.getElementById('appt-type').value,title,appointment_date:date,appointment_time:document.getElementById('appt-time').value||null,location:document.getElementById('appt-location').value.trim()||null,notes:document.getElementById('appt-notes').value.trim()||null,reminder_days:selRemDays};try{var res=apptEditId?await sb.from('appointments').update(data).eq('id',apptEditId):await sb.from('appointments').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showApptMsg('Error: '+res.error.message,'error');setFormLoading('appt',false);return;}document.getElementById('modal-appt-form').classList.add('hidden');setFormLoading('appt',false);await loadAppts(curPetId);renderAgendaContent();}catch(e){showApptMsg('Error de conexión.','error');setFormLoading('appt',false);}};
+  window.deleteAppt=async function(){if(!apptEditId)return;var a=APPTS.find(function(x){return x.id===apptEditId;});if(!confirm('¿Eliminar la cita "'+a.title+'"?'))return;setFormLoading('appt',true);try{var res=await sb.from('appointments').delete().eq('id',apptEditId);if(res.error){showApptMsg('Error: '+res.error.message,'error');setFormLoading('appt',false);return;}document.getElementById('modal-appt-form').classList.add('hidden');setFormLoading('appt',false);await loadAppts(curPetId);renderAgendaContent();}catch(e){showApptMsg('Error de conexión.','error');setFormLoading('appt',false);}};
   window.selectReminder=function(btn){selRemDays=parseInt(btn.getAttribute('data-days'));resetReminderGrid();btn.classList.add('active');};
   function resetReminderGrid(){document.querySelectorAll('.reminder-btn').forEach(function(b){b.classList.remove('active');});}
   function preselectReminder(days){document.querySelectorAll('.reminder-btn').forEach(function(b){if(parseInt(b.getAttribute('data-days'))===days)b.classList.add('active');});}
   function showApptMsg(text,type){var el=document.getElementById('appt-form-msg');el.textContent=text;el.className='auth-msg '+(type||'error');}
-  function setApptLoading(loading){var btn=document.getElementById('btn-save-appt');var spinner=document.getElementById('spinner-appt');var txt=document.getElementById('btn-save-appt-text');btn.disabled=loading;spinner.classList.toggle('visible',loading);txt.style.opacity=loading?'0.5':'1';}
-
-
-  /* ──────────────────────────────────────────────────────────────
-     TORRE 2 — CLÍNICA
-     ────────────────────────────────────────────────────────────── */
-  async function loadClinical(petId){try{var[vRes,rRes]=await Promise.all([sb.from('vaccines').select('*').eq('pet_id',petId).order('applied_date',{ascending:false}),sb.from('health_records').select('*').eq('pet_id',petId).order('record_date',{ascending:false})]);VACCINES=vRes.error?[]:(vRes.data||[]);RECORDS=rRes.error?[]:(rRes.data||[]);}catch(e){VACCINES=[];RECORDS=[];}renderOrbsHub(DIARY,VACCINES,APPTS);renderHubAlert(VACCINES);updateClinicBadge(VACCINES);}
-  function daysUntil(dateStr){if(!dateStr)return null;var today=new Date();today.setHours(0,0,0,0);return Math.round((new Date(dateStr+'T00:00:00')-today)/(1000*60*60*24));}
-  function getVaccineAlerts(vaccines){return vaccines.filter(function(v){if(!v.next_date)return false;var d=daysUntil(v.next_date);return d!==null&&d<=30;}).sort(function(a,b){return daysUntil(a.next_date)-daysUntil(b.next_date);});}
-  function updateClinicBadge(vaccines){var alerts=getVaccineAlerts(vaccines);var mod=MODULES.find(function(m){return m.id==='clinica';});if(mod){mod.badge=alerts.length>0?'⚠ '+alerts.length:'';mod.badgeClass=alerts.length>0?'mb-red':'';}renderModules();}
-  function renderHubAlert(vaccines){var el=document.getElementById('hub-alert-card');var alerts=getVaccineAlerts(vaccines);if(alerts.length===0){el.style.display='none';return;}el.style.display='';var items=alerts.slice(0,3).map(function(v){var d=daysUntil(v.next_date);var l=d<0?'Vencida hace '+Math.abs(d)+'d':d===0?'Vence hoy':'Vence en '+d+'d';return '<div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:7px;padding:3px 0"><div style="width:6px;height:6px;border-radius:50%;background:var(--coral);flex-shrink:0"></div>'+escapeHtml(v.vaccine_name)+' — '+l+'</div>';}).join('');el.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:20px" aria-hidden="true">🚨</span><span style="font-size:14px;font-weight:800;color:#ff9a9a">'+alerts.length+' vacuna'+(alerts.length===1?' próxima':'s próximas')+' a vencer</span></div>'+items+'<div style="font-size:11px;color:var(--muted);margin-top:8px">Toca para ver la historia clínica →</div>';}
-  function renderClinicContent(){var pet=getPetById(curPetId);if(!pet)return;var typeIcons={consulta:'🩺',cirugia:'🔪',alergia:'⚠️',desparasitacion:'💊',otro:'📋'};var typeCss={consulta:'rt-consulta',cirugia:'rt-cirugia',alergia:'rt-alergia',desparasitacion:'rt-desparasitacion',otro:'rt-otro'};var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">'+(pet.photo_url?'<img src="'+escapeHtml(pet.photo_url)+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle" alt="">':'<span style="font-size:20px">'+pet.emoji+'</span>')+' <span style="font-size:15px;font-weight:800;color:var(--teal-l)">Historia Clínica de '+escapeHtml(pet.name)+'</span></div><div class="clinic-tabs"><button class="clinic-tab'+(clinicTab==='vaccines'?' active':'')+'" onclick="switchClinicTab(\'vaccines\')">💉 Vacunas ('+VACCINES.length+')</button><button class="clinic-tab'+(clinicTab==='records'?' active':'')+'" onclick="switchClinicTab(\'records\')">📋 Registros ('+RECORDS.length+')</button></div>';if(clinicTab==='vaccines'){html+='<button class="clinic-fab" onclick="openVaccineForm()">💉 Nueva vacuna</button>';if(VACCINES.length===0){html+='<div class="clinic-empty"><span class="clinic-empty-icon">💉</span><div class="clinic-empty-title">Sin vacunas</div><div class="clinic-empty-sub">Agrega la primera vacuna de '+escapeHtml(pet.name)+'.</div></div>';}else html+=VACCINES.map(function(v){var days=daysUntil(v.next_date);var isAlert=days!==null&&days<=30;var badgeText='',badgeClass='badge-none';if(v.next_date){if(days<0){badgeText='Vencida';badgeClass='badge-alert';}else if(days===0){badgeText='Hoy';badgeClass='badge-alert';}else if(days<=30){badgeText='En '+days+'d';badgeClass='badge-alert';}else{badgeText='En '+days+'d';badgeClass='badge-ok';}}return '<div class="vaccine-card'+(isAlert?' alert':v.next_date?' ok':'')+'" onclick="openVaccineForm(\''+v.id+'\')"><div class="vaccine-header"><div class="vaccine-name">'+escapeHtml(v.vaccine_name)+'</div><span class="vaccine-badge '+badgeClass+'">'+badgeText+'</span></div><div class="vaccine-meta"><span>📅 '+formatDateShort(v.applied_date)+'</span>'+(v.next_date?'<span>🔔 '+formatDateShort(v.next_date)+'</span>':'')+'</div>'+(v.vet_name?'<div class="vaccine-vet">👨‍⚕️ '+escapeHtml(v.vet_name)+'</div>':'')+'</div>';}).join('');}else{html+='<button class="clinic-fab" onclick="openRecordForm()">📋 Nuevo registro</button>';if(RECORDS.length===0){html+='<div class="clinic-empty"><span class="clinic-empty-icon">📋</span><div class="clinic-empty-title">Sin registros</div><div class="clinic-empty-sub">Registra consultas, cirugías y más.</div></div>';}else html+=RECORDS.map(function(r){return '<div class="record-card" onclick="openRecordForm(\''+r.id+'\')"><div class="record-header"><span style="font-size:20px">'+(typeIcons[r.record_type]||'📋')+'</span><span class="record-type-badge '+(typeCss[r.record_type]||'rt-otro')+'">'+r.record_type+'</span><span class="record-title">'+escapeHtml(r.title)+'</span></div>'+(r.description?'<div class="record-desc">'+escapeHtml(r.description)+'</div>':'')+'<div class="record-footer"><span class="record-date">'+formatDateShort(r.record_date)+'</span>'+(r.vet_name?'<span class="record-vet">👨‍⚕️ '+escapeHtml(r.vet_name)+'</span>':'')+'</div></div>';}).join('');}document.getElementById('modal-module-content').innerHTML=html;}
-  window.switchClinicTab=function(tab){clinicTab=tab;renderClinicContent();};
-  window.openVaccineForm=function(id){vaccineEditId=id||null;var isEdit=!!vaccineEditId;document.getElementById('v-name').value='';document.getElementById('v-applied').value=todayISO();document.getElementById('v-next').value='';document.getElementById('v-vet').value='';document.getElementById('v-notes').value='';document.getElementById('vaccine-form-msg').className='auth-msg';document.getElementById('vaccine-form-title').textContent=isEdit?'Editar vacuna':'Nueva vacuna';document.getElementById('btn-save-vaccine-text').textContent=isEdit?'Guardar cambios 💉':'Guardar vacuna 💉';document.getElementById('btn-delete-vaccine').style.display=isEdit?'':'none';if(isEdit){var v=VACCINES.find(function(x){return x.id===vaccineEditId;});if(v){document.getElementById('v-name').value=v.vaccine_name;document.getElementById('v-applied').value=v.applied_date;document.getElementById('v-next').value=v.next_date||'';document.getElementById('v-vet').value=v.vet_name||'';document.getElementById('v-notes').value=v.notes||'';}}document.getElementById('modal-vaccine-form').classList.remove('hidden');setTimeout(function(){document.getElementById('v-name').focus();},300);};
-  window.closeVaccineForm=function(e){if(!e||e.target===document.getElementById('modal-vaccine-form'))document.getElementById('modal-vaccine-form').classList.add('hidden');};
-  window.saveVaccine=async function(){var name=document.getElementById('v-name').value.trim();var applied=document.getElementById('v-applied').value;if(!name||!applied){showFormMsg('vaccine','Nombre y fecha obligatorios.','error');return;}setFormLoading('vaccine',true);var data={vaccine_name:name,applied_date:applied,next_date:document.getElementById('v-next').value||null,vet_name:document.getElementById('v-vet').value.trim()||null,notes:document.getElementById('v-notes').value.trim()||null};try{var res=vaccineEditId?await sb.from('vaccines').update(data).eq('id',vaccineEditId):await sb.from('vaccines').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showFormMsg('vaccine','Error: '+res.error.message,'error');setFormLoading('vaccine',false);return;}document.getElementById('modal-vaccine-form').classList.add('hidden');setFormLoading('vaccine',false);await loadClinical(curPetId);renderClinicContent();}catch(e){showFormMsg('vaccine','Error de conexión.','error');setFormLoading('vaccine',false);}};
-  window.deleteVaccine=async function(){if(!vaccineEditId)return;var v=VACCINES.find(function(x){return x.id===vaccineEditId;});if(!confirm('¿Eliminar la vacuna "'+v.vaccine_name+'"?'))return;setFormLoading('vaccine',true);try{var res=await sb.from('vaccines').delete().eq('id',vaccineEditId);if(res.error){showFormMsg('vaccine','Error: '+res.error.message,'error');setFormLoading('vaccine',false);return;}document.getElementById('modal-vaccine-form').classList.add('hidden');setFormLoading('vaccine',false);await loadClinical(curPetId);renderClinicContent();}catch(e){showFormMsg('vaccine','Error de conexión.','error');setFormLoading('vaccine',false);}};
-  window.openRecordForm=function(id){recordEditId=id||null;var isEdit=!!recordEditId;document.getElementById('r-type').value='consulta';document.getElementById('r-title').value='';document.getElementById('r-desc').value='';document.getElementById('r-date').value=todayISO();document.getElementById('r-vet').value='';document.getElementById('record-form-msg').className='auth-msg';document.getElementById('record-form-title').textContent=isEdit?'Editar registro':'Nuevo registro';document.getElementById('btn-save-record-text').textContent=isEdit?'Guardar cambios 🏥':'Guardar registro 🏥';document.getElementById('btn-delete-record').style.display=isEdit?'':'none';if(isEdit){var r=RECORDS.find(function(x){return x.id===recordEditId;});if(r){document.getElementById('r-type').value=r.record_type;document.getElementById('r-title').value=r.title;document.getElementById('r-desc').value=r.description||'';document.getElementById('r-date').value=r.record_date;document.getElementById('r-vet').value=r.vet_name||'';}}document.getElementById('modal-record-form').classList.remove('hidden');setTimeout(function(){document.getElementById('r-title').focus();},300);};
-  window.closeRecordForm=function(e){if(!e||e.target===document.getElementById('modal-record-form'))document.getElementById('modal-record-form').classList.add('hidden');};
-  window.saveRecord=async function(){var title=document.getElementById('r-title').value.trim();var date=document.getElementById('r-date').value;if(!title||!date){showFormMsg('record','Título y fecha obligatorios.','error');return;}setFormLoading('record',true);var data={record_type:document.getElementById('r-type').value,title,description:document.getElementById('r-desc').value.trim()||null,record_date:date,vet_name:document.getElementById('r-vet').value.trim()||null};try{var res=recordEditId?await sb.from('health_records').update(data).eq('id',recordEditId):await sb.from('health_records').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showFormMsg('record','Error: '+res.error.message,'error');setFormLoading('record',false);return;}document.getElementById('modal-record-form').classList.add('hidden');setFormLoading('record',false);await loadClinical(curPetId);renderClinicContent();}catch(e){showFormMsg('record','Error de conexión.','error');setFormLoading('record',false);}};
-  window.deleteRecord=async function(){if(!recordEditId)return;var r=RECORDS.find(function(x){return x.id===recordEditId;});if(!confirm('¿Eliminar el registro "'+r.title+'"?'))return;setFormLoading('record',true);try{var res=await sb.from('health_records').delete().eq('id',recordEditId);if(res.error){showFormMsg('record','Error: '+res.error.message,'error');setFormLoading('record',false);return;}document.getElementById('modal-record-form').classList.add('hidden');setFormLoading('record',false);await loadClinical(curPetId);renderClinicContent();}catch(e){showFormMsg('record','Error de conexión.','error');setFormLoading('record',false);}};
-  function showFormMsg(form,text,type){var el=document.getElementById(form+'-form-msg');el.textContent=text;el.className='auth-msg '+(type||'error');}
-  function setFormLoading(form,loading){var btn=document.getElementById('btn-save-'+form);var spinner=document.getElementById('spinner-'+form);var txt=document.getElementById('btn-save-'+form+'-text');btn.disabled=loading;spinner.classList.toggle('visible',loading);txt.style.opacity=loading?'0.5':'1';}
 
 
   /* ──────────────────────────────────────────────────────────────
@@ -1216,7 +1163,16 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   async function loadDiary(petId){try{var res=await sb.from('diary_entries').select('*').eq('pet_id',petId).order('entry_date',{ascending:false}).order('created_at',{ascending:false});DIARY=res.error?[]:(res.data||[]);}catch(e){DIARY=[];}renderDiaryPreview(DIARY);}
   function renderDiaryPreview(entries){var el=document.getElementById('diario-prev');if(entries.length===0){var pet=getPetById(curPetId);el.innerHTML='<div class="d-entry"><span class="d-mood" aria-hidden="true">📝</span><div><div class="d-text">El diario de '+(pet?escapeHtml(pet.name):'tu mascota')+' está vacío.</div><div class="d-time">Toca para abrir el diario</div></div></div>';return;}el.innerHTML=entries.slice(0,2).map(function(e){return '<div class="d-entry"><span class="d-mood" aria-hidden="true">'+e.mood+'</span><div><div class="d-text">'+escapeHtml(e.note)+'</div><div class="d-time">'+formatDate(e.entry_date)+'</div></div></div>';}).join('');}
   function calcStreak(entries){if(!entries||entries.length===0)return 0;var dates=[];entries.forEach(function(e){var d=e.entry_date.split('T')[0];if(dates.indexOf(d)===-1)dates.push(d);});dates.sort(function(a,b){return b>a?1:-1;});var streak=1;for(var i=0;i<dates.length-1;i++){var a=new Date(dates[i]+'T00:00:00'),b=new Date(dates[i+1]+'T00:00:00');if(Math.round((a-b)/(1000*60*60*24))===1)streak++;else break;}return streak;}
-  function renderDiaryTimeline(){var pet=getPetById(curPetId);if(!pet){document.getElementById('modal-module-content').innerHTML='';return;}var streak=calcStreak(DIARY);var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">'+(pet.photo_url?'<img src="'+escapeHtml(pet.photo_url)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover" alt="">':'<span style="font-size:22px">'+pet.emoji+'</span>')+' <span style="font-size:15px;font-weight:800;color:var(--teal-l)">Diario de '+escapeHtml(pet.name)+'</span></div>';if(streak>0)html+='<div class="diary-streak"><span class="streak-fire">🔥</span><span class="streak-text">Racha activa</span><span class="streak-count">'+streak+' día'+(streak===1?'':'s')+'</span></div>';html+='<button class="diary-fab" onclick="openDiaryForm()">✏️ Nueva entrada</button>';if(DIARY.length===0){html+='<div class="diary-empty"><span style="font-size:44px;display:block;margin-bottom:12px;opacity:.6">📓</span><div style="font-size:16px;font-weight:800;margin-bottom:6px">El diario está vacío</div></div>';}else{var groups={};DIARY.forEach(function(e){var d=e.entry_date.split('T')[0];if(!groups[d])groups[d]=[];groups[d].push(e);});html+='<div class="diary-timeline">';Object.keys(groups).forEach(function(date){html+='<div class="diary-date-group"><div class="diary-date-label">'+formatDateLong(date)+'</div>';groups[date].forEach(function(e){html+='<div class="diary-entry-card" onclick="openDiaryForm(\''+e.id+'\')"><span class="diary-entry-mood" aria-hidden="true">'+e.mood+'</span><div class="diary-entry-body"><div class="diary-entry-note">'+escapeHtml(e.note)+'</div><div class="diary-entry-meta"><span class="diary-entry-time">'+formatTime(e.created_at)+'</span><button class="diary-entry-edit" onclick="event.stopPropagation();openDiaryForm(\''+e.id+'\')" aria-label="Editar">✏ Editar</button></div></div></div>';});html+='</div>';});html+='</div>';}document.getElementById('modal-module-content').innerHTML=html;}
+  function renderDiaryTimeline(){
+    var pet=getPetById(curPetId);if(!pet)return;
+    var streak=calcStreak(DIARY);
+    var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">'+(pet.photo_url?'<img src="'+escapeHtml(pet.photo_url)+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover" alt="">':'<span style="font-size:22px">'+pet.emoji+'</span>')+' <span style="font-size:15px;font-weight:800;color:var(--teal-l)">Diario de '+escapeHtml(pet.name)+'</span></div>';
+    if(streak>0)html+='<div class="diary-streak"><span class="streak-fire">🔥</span><span class="streak-text">Racha activa</span><span class="streak-count">'+streak+' día'+(streak===1?'':'s')+'</span></div>';
+    html+='<button class="diary-fab" onclick="openDiaryForm()">✏️ Nueva entrada</button>';
+    if(DIARY.length===0){html+='<div class="diary-empty"><span style="font-size:44px;display:block;margin-bottom:12px;opacity:.6">📓</span><div style="font-size:16px;font-weight:800;margin-bottom:6px">El diario está vacío</div></div>';}
+    else{var groups={};DIARY.forEach(function(e){var d=e.entry_date.split('T')[0];if(!groups[d])groups[d]=[];groups[d].push(e);});html+='<div class="diary-timeline">';Object.keys(groups).forEach(function(date){html+='<div class="diary-date-group"><div class="diary-date-label">'+formatDateLong(date)+'</div>';groups[date].forEach(function(e){html+='<div class="diary-entry-card" onclick="openDiaryForm(\''+e.id+'\')"><span class="diary-entry-mood" aria-hidden="true">'+e.mood+'</span><div class="diary-entry-body"><div class="diary-entry-note">'+escapeHtml(e.note)+'</div><div class="diary-entry-meta"><span class="diary-entry-time">'+formatTime(e.created_at)+'</span><button class="diary-entry-edit" onclick="event.stopPropagation();openDiaryForm(\''+e.id+'\')" aria-label="Editar">✏ Editar</button></div></div></div>';});html+='</div>';});html+='</div>';}
+    document.getElementById('modal-module-content').innerHTML=html;
+  }
   window.openDiaryForm=function(id){diaryEditId=id||null;var isEdit=!!diaryEditId;document.getElementById('diary-note').value='';document.getElementById('diary-date').value=todayISO();document.getElementById('diary-form-msg').className='auth-msg';selMood='😄';resetMoodGrid();document.getElementById('diary-form-title').textContent=isEdit?'Editar entrada':'Nueva entrada';document.getElementById('btn-save-diary-text').textContent=isEdit?'Guardar cambios 📓':'Guardar entrada 📓';document.getElementById('btn-delete-diary').style.display=isEdit?'':'none';if(isEdit){var entry=DIARY.find(function(e){return e.id===diaryEditId;});if(entry){document.getElementById('diary-note').value=entry.note;document.getElementById('diary-date').value=entry.entry_date.split('T')[0];selMood=entry.mood;preselectMood(entry.mood);}}document.getElementById('modal-diary-form').classList.remove('hidden');setTimeout(function(){document.getElementById('diary-note').focus();},300);};
   window.closeDiaryForm=function(e){if(!e||e.target===document.getElementById('modal-diary-form'))document.getElementById('modal-diary-form').classList.add('hidden');};
   window.saveDiaryEntry=async function(){var note=document.getElementById('diary-note').value.trim();var date=document.getElementById('diary-date').value;if(!note){setDiaryMsg('Escribe algo antes de guardar.','error');return;}setFormLoading2('diary',true);var data={mood:selMood,note,entry_date:date};try{var res=diaryEditId?await sb.from('diary_entries').update(data).eq('id',diaryEditId):await sb.from('diary_entries').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){setDiaryMsg('Error: '+res.error.message,'error');setFormLoading2('diary',false);return;}document.getElementById('modal-diary-form').classList.add('hidden');setFormLoading2('diary',false);await loadDiary(curPetId);renderOrbsHub(DIARY,VACCINES,APPTS);if(!document.getElementById('modal-module').classList.contains('hidden'))renderDiaryTimeline();}catch(e){setDiaryMsg('Error de conexión.','error');setFormLoading2('diary',false);}};
@@ -1229,17 +1185,33 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
   /* ──────────────────────────────────────────────────────────────
-     TORRE 7 — IA (Claude)
+     TORRE 7 — ASISTENTE IA (Claude vía Proxy)
      ────────────────────────────────────────────────────────────── */
-  function buildSystemPrompt(pet){var lines=[];lines.push('Eres "Dr. Peludos", asistente veterinario empático y experto.');lines.push('Orientas a dueños de mascotas con información útil, clara y responsable.');lines.push('Siempre recomiendas consultar a un veterinario presencial para diagnósticos definitivos.');lines.push('Responde en español, de forma cálida y concisa (máximo 3-4 párrafos).');lines.push('');lines.push('=== FICHA COMPLETA DE LA MASCOTA ===');lines.push('Nombre: '+pet.name);lines.push('Especie: '+pet.species+' ('+pet.emoji+')');if(pet.breed)lines.push('Raza: '+pet.breed);if(pet.birthdate)lines.push('Edad: '+calcAge(pet.birthdate)+' (nacido el '+pet.birthdate+')');if(pet.weight_kg)lines.push('Peso: '+pet.weight_kg+' kg');if(pet.allergies)lines.push('Alergias: '+pet.allergies);if(pet.behavior)lines.push('Conducta: '+pet.behavior);if(pet.traits)lines.push('Rasgos físicos: '+pet.traits);var vaccAlerts=getVaccineAlerts(VACCINES);if(vaccAlerts.length>0){lines.push('');lines.push('VACUNAS PRÓXIMAS A VENCER:');vaccAlerts.forEach(function(v){var d=daysUntil(v.next_date);var l=d<0?'VENCIDA hace '+Math.abs(d)+'d':d===0?'VENCE HOY':'vence en '+d+'d';lines.push('- '+v.vaccine_name+': '+l);});}else if(VACCINES.length>0){lines.push('');lines.push('VACUNAS: '+VACCINES.length+' registradas, todas al día.');}if(DIARY.length>0){lines.push('');lines.push('ÚLTIMAS ENTRADAS DEL DIARIO:');DIARY.slice(0,5).forEach(function(e){lines.push('- ['+e.entry_date+'] '+e.mood+' — '+e.note);});}var upcoming=getUpcomingAppts(APPTS,7);if(upcoming.length>0){lines.push('');lines.push('CITAS PRÓXIMAS (7 días):');upcoming.forEach(function(a){lines.push('- ['+a.appointment_date+'] '+a.appointment_type+': '+a.title+(a.appointment_time?' a las '+a.appointment_time.slice(0,5):''));});}if(RECORDS.length>0){lines.push('');lines.push('REGISTROS CLÍNICOS:');RECORDS.slice(0,3).forEach(function(r){lines.push('- ['+r.record_date+'] '+r.record_type+': '+r.title);});}lines.push('');lines.push('Usa este perfil completo para personalizar cada respuesta.');return lines.join('\n');}
+  function buildSystemPrompt(pet){
+    var lines=[];lines.push('Eres "Dr. Peludos", asistente veterinario empático y experto.');lines.push('Responde en español, de forma cálida y concisa (máximo 3-4 párrafos).');lines.push('Siempre recomiendas consultar a un veterinario presencial para diagnósticos definitivos.');lines.push('');lines.push('=== FICHA DEL FAMILIAR ===');lines.push('Nombre: '+pet.name);lines.push('Especie: '+pet.species+' ('+pet.emoji+')');if(pet.breed)lines.push('Raza: '+pet.breed);if(pet.birthdate)lines.push('Edad: '+calcAge(pet.birthdate));if(pet.weight_kg)lines.push('Peso: '+pet.weight_kg+' kg');if(pet.allergies)lines.push('Alergias: '+pet.allergies);if(pet.behavior)lines.push('Conducta: '+pet.behavior);if(pet.traits)lines.push('Rasgos físicos: '+pet.traits);
+    var alerts=getVaccineAlerts(VACCINES);if(alerts.length>0){lines.push('');lines.push('VACUNAS PRÓXIMAS:');alerts.forEach(function(v){var d=daysUntil(v.next_date);lines.push('- '+v.vaccine_name+': '+(d<0?'VENCIDA':d===0?'HOY':'en '+d+'d'));});}
+    if(DIARY.length>0){lines.push('');lines.push('DIARIO RECIENTE:');DIARY.slice(0,5).forEach(function(e){lines.push('- ['+e.entry_date+'] '+e.mood+' — '+e.note);});}
+    var upcoming=getUpcomingAppts(APPTS,7);if(upcoming.length>0){lines.push('');lines.push('CITAS PRÓXIMAS:');upcoming.forEach(function(a){lines.push('- ['+a.appointment_date+'] '+a.appointment_type+': '+a.title);});}
+    lines.push('');lines.push('Usa este perfil para personalizar cada respuesta.');
+    return lines.join('\n');
+  }
 
-  function renderIAContent(){var pet=getPetById(curPetId);if(!pet){document.getElementById('modal-module-content').innerHTML='<div style="text-align:center;padding:2rem"><div style="font-size:40px;margin-bottom:12px">🐾</div><div style="font-size:15px;font-weight:800;margin-bottom:8px">Sin mascota activa</div><div style="font-size:13px;color:var(--sub)">Selecciona una mascota desde el Hub.</div></div>';return;}var vaccAlerts=getVaccineAlerts(VACCINES);var upcoming=getUpcomingAppts(APPTS,7);var contextParts=[];if(pet.breed)contextParts.push(pet.breed);if(pet.birthdate)contextParts.push(calcAge(pet.birthdate));if(pet.weight_kg)contextParts.push(pet.weight_kg+'kg');if(DIARY.length>0)contextParts.push(DIARY.length+' entradas diario');if(vaccAlerts.length>0)contextParts.push('⚠ '+vaccAlerts.length+' alerta'+(vaccAlerts.length>1?'s':''));if(upcoming.length>0)contextParts.push('📅 '+upcoming.length+' cita'+(upcoming.length>1?'s':''));var suggestions=[];if(vaccAlerts.length>0)suggestions.push('¿Qué pasa si no vacuno a '+pet.name+' a tiempo?');if(pet.allergies)suggestions.push('Consejos para las alergias de '+pet.name);if(upcoming.length>0)suggestions.push('¿Cómo preparo a '+pet.name+' para la cita del '+formatDateShort(upcoming[0].appointment_date)+'?');if(DIARY.length>0&&['😰','🤒','😤'].indexOf(DIARY[0].mood)!==-1)suggestions.push('¿Por qué puede estar así '+pet.name+'?');suggestions.push('¿Cuánto debe comer '+pet.name+' por día?');var avatarHtml=pet.photo_url?'<div class="ia-pet-avatar"><img src="'+escapeHtml(pet.photo_url)+'" alt="'+escapeHtml(pet.name)+'"></div>':'<div class="ia-pet-avatar" style="font-size:22px">'+pet.emoji+'</div>';var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:15px;font-weight:800;color:#c084fc">🩺 Asistente Veterinario IA</div></div>'+
-  '<div class="ia-header">'+avatarHtml+'<div class="ia-pet-info"><div class="ia-pet-name">'+escapeHtml(pet.name)+'</div><div class="ia-pet-detail">'+(contextParts.length>0?contextParts.join(' · '):'Sin datos adicionales')+'</div></div><span class="ia-status">✦ Claude</span></div>'+
-  (IA_MESSAGES.length===0?'<div class="ia-suggestions" id="ia-suggestions">'+suggestions.slice(0,3).map(function(s){return '<button class="ia-suggestion-btn" onclick="sendSuggestion(\''+escapeAttr(s)+'\')">'+escapeHtml(s)+'</button>';}).join('')+'</div>':'')+
-  '<div class="ia-messages" id="ia-messages">'+(IA_MESSAGES.length===0?'<div class="ia-msg assistant"><div class="ia-msg-avatar" aria-hidden="true">🩺</div><div class="ia-msg-bubble">Hola 👋 Soy el Dr. Peludos. Tengo el perfil completo de <strong>'+escapeHtml(pet.name)+'</strong>'+(pet.breed?' ('+escapeHtml(pet.breed)+')':'')+'. ¿En qué te puedo ayudar hoy?</div></div>':IA_MESSAGES.map(renderIAMessage).join(''))+'</div>'+
-  '<div class="ia-input-row"><textarea class="ia-input" id="ia-input" placeholder="Pregunta sobre '+escapeAttr(pet.name)+'..." rows="1" onkeydown="iaKeydown(event)" oninput="iaAutoResize(this)"></textarea><button class="ia-send-btn" id="ia-send-btn" onclick="sendIAMessage()" aria-label="Enviar">➤</button></div>'+
-  '<div class="ia-footer"><span class="ia-disclaimer">IA orientativa · no reemplaza consulta veterinaria</span><button class="ia-clear-btn" onclick="clearIAChat()">🗑 Limpiar</button></div>';
-  document.getElementById('modal-module-content').innerHTML=html;setTimeout(function(){var m=document.getElementById('ia-messages');if(m)m.scrollTop=m.scrollHeight;},50);}
+  function renderIAContent(){
+    var pet=getPetById(curPetId);
+    if(!pet){document.getElementById('modal-module-content').innerHTML='<div style="text-align:center;padding:2rem"><div style="font-size:40px;margin-bottom:12px">🐾</div><div style="font-size:15px;font-weight:800;margin-bottom:8px">Sin mascota activa</div><div style="font-size:13px;color:var(--sub)">Selecciona una mascota desde el Hub.</div></div>';return;}
+    var alerts=getVaccineAlerts(VACCINES);var upcoming=getUpcomingAppts(APPTS,7);
+    var contextParts=[];if(pet.breed)contextParts.push(pet.breed);if(pet.birthdate)contextParts.push(calcAge(pet.birthdate));if(pet.weight_kg)contextParts.push(pet.weight_kg+'kg');if(DIARY.length>0)contextParts.push(DIARY.length+' entradas diario');if(alerts.length>0)contextParts.push('⚠ '+alerts.length+' alerta'+(alerts.length>1?'s':''));if(upcoming.length>0)contextParts.push('📅 '+upcoming.length+' cita'+(upcoming.length>1?'s':''));
+    var suggestions=[];if(alerts.length>0)suggestions.push('¿Qué pasa si no vacuno a '+pet.name+' a tiempo?');if(pet.allergies)suggestions.push('Consejos para las alergias de '+pet.name);if(upcoming.length>0)suggestions.push('¿Cómo preparo a '+pet.name+' para la próxima cita?');if(DIARY.length>0&&['😰','🤒','😤'].indexOf(DIARY[0].mood)!==-1)suggestions.push('¿Por qué puede estar así '+pet.name+'?');suggestions.push('¿Cuánto debe comer '+pet.name+' por día?');
+    var avatarHtml=pet.photo_url?'<div class="ia-pet-avatar"><img src="'+escapeHtml(pet.photo_url)+'" alt="'+escapeHtml(pet.name)+'"></div>':'<div class="ia-pet-avatar" style="font-size:22px">'+pet.emoji+'</div>';
+    var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:15px;font-weight:800;color:#c084fc">🩺 Asistente Veterinario IA</div></div>'+
+      '<div class="ia-header">'+avatarHtml+'<div class="ia-pet-info"><div class="ia-pet-name">'+escapeHtml(pet.name)+'</div><div class="ia-pet-detail">'+(contextParts.length>0?contextParts.join(' · '):'Sin datos adicionales')+'</div></div><span class="ia-status">✦ Claude</span></div>'+
+      (IA_MESSAGES.length===0?'<div class="ia-suggestions" id="ia-suggestions">'+suggestions.slice(0,3).map(function(s){return '<button class="ia-suggestion-btn" onclick="sendSuggestion(\''+escapeAttr(s)+'\')">'+escapeHtml(s)+'</button>';}).join('')+'</div>':'')+
+      '<div class="ia-messages" id="ia-messages" style="flex:1;min-height:200px">'+(IA_MESSAGES.length===0?'<div class="ia-msg assistant"><div class="ia-msg-avatar" aria-hidden="true">🩺</div><div class="ia-msg-bubble">Hola 👋 Soy el Dr. Peludos. Tengo el perfil completo de <strong>'+escapeHtml(pet.name)+'</strong>'+(pet.breed?' ('+escapeHtml(pet.breed)+')':'')+'. ¿En qué te puedo ayudar?</div></div>':IA_MESSAGES.map(renderIAMessage).join(''))+'</div>'+
+      '<div class="ia-input-row"><textarea class="ia-input" id="ia-input" placeholder="Pregunta sobre '+escapeAttr(pet.name)+'..." rows="1" onkeydown="iaKeydown(event)" oninput="iaAutoResize(this)"></textarea><button class="ia-send-btn" id="ia-send-btn" onclick="sendIAMessage()" aria-label="Enviar">➤</button></div>'+
+      '<div class="ia-footer"><span class="ia-disclaimer">IA orientativa · no reemplaza consulta veterinaria</span><button class="ia-clear-btn" onclick="clearIAChat()">🗑 Limpiar</button></div>';
+    document.getElementById('modal-module-content').innerHTML=html;
+    setTimeout(function(){var m=document.getElementById('ia-messages');if(m)m.scrollTop=m.scrollHeight;},50);
+  }
   function renderIAMessage(msg){return '<div class="ia-msg '+msg.role+'"><div class="ia-msg-avatar" aria-hidden="true">'+(msg.role==='assistant'?'🩺':'👤')+'</div><div class="ia-msg-bubble">'+formatIAText(msg.content)+'</div></div>';}
   function formatIAText(text){return escapeHtml(text).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');}
   window.sendIAMessage=async function(){var input=document.getElementById('ia-input');if(!input)return;var text=input.value.trim();if(!text||iaIsTyping)return;input.value='';iaAutoResize(input);await askClaude(text);};
@@ -1247,24 +1219,18 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.iaKeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendIAMessage();}};
   window.iaAutoResize=function(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';};
   window.clearIAChat=function(){IA_MESSAGES=[];renderIAContent();};
-  async function askClaude(userText){if(iaIsTyping)return;var pet=getPetById(curPetId);if(!pet)return;
-    
-   
-    
-    iaIsTyping=true;IA_MESSAGES.push({role:'user',content:userText});appendIAMessage('user',userText);showTypingIndicator();disableIAInput(true);try{
-    
-    var response = await fetch(PROXY_URL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-  },
-  body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,system:buildSystemPrompt(pet),messages:IA_MESSAGES.map(function(m){return{role:m.role,content:m.content};})})
-});
-    
-
-    
-    hideTypingIndicator();if(!response.ok){var errData=await response.json().catch(function(){return{};});appendIAMessage('assistant','❌ '+(errData.error&&errData.error.message?errData.error.message:'Error al conectar con la IA.'));iaIsTyping=false;disableIAInput(false);return;}var data=await response.json();var reply=data.content&&data.content[0]&&data.content[0].text?data.content[0].text:'No pude generar una respuesta.';IA_MESSAGES.push({role:'assistant',content:reply});appendIAMessage('assistant',reply);}catch(e){hideTypingIndicator();appendIAMessage('assistant','❌ Error de conexión.');}iaIsTyping=false;disableIAInput(false);var inp=document.getElementById('ia-input');if(inp)inp.focus();}
+  async function askClaude(userText){
+    if(iaIsTyping)return;var pet=getPetById(curPetId);if(!pet)return;
+    iaIsTyping=true;IA_MESSAGES.push({role:'user',content:userText});appendIAMessage('user',userText);showTypingIndicator();disableIAInput(true);
+    try{
+      var response=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON_KEY},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,system:buildSystemPrompt(pet),messages:IA_MESSAGES.map(function(m){return{role:m.role,content:m.content};})})});
+      hideTypingIndicator();
+      if(!response.ok){var errData=await response.json().catch(function(){return{};});appendIAMessage('assistant','❌ '+(errData.error&&errData.error.message?errData.error.message:'Error al conectar con la IA.'));iaIsTyping=false;disableIAInput(false);return;}
+      var data=await response.json();var reply=data.content&&data.content[0]&&data.content[0].text?data.content[0].text:'No pude generar una respuesta.';
+      IA_MESSAGES.push({role:'assistant',content:reply});appendIAMessage('assistant',reply);
+    }catch(e){hideTypingIndicator();appendIAMessage('assistant','❌ Error de conexión.');}
+    iaIsTyping=false;disableIAInput(false);var inp=document.getElementById('ia-input');if(inp)inp.focus();
+  }
   function appendIAMessage(role,content){var msgs=document.getElementById('ia-messages');if(!msgs)return;var div=document.createElement('div');div.className='ia-msg '+role;div.innerHTML='<div class="ia-msg-avatar" aria-hidden="true">'+(role==='assistant'?'🩺':'👤')+'</div><div class="ia-msg-bubble">'+formatIAText(content)+'</div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
   function showTypingIndicator(){var msgs=document.getElementById('ia-messages');if(!msgs)return;var div=document.createElement('div');div.className='ia-msg assistant';div.id='ia-typing-indicator';div.innerHTML='<div class="ia-msg-avatar" aria-hidden="true">🩺</div><div class="ia-typing"><div class="ia-typing-dot"></div><div class="ia-typing-dot"></div><div class="ia-typing-dot"></div></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;}
   function hideTypingIndicator(){var el=document.getElementById('ia-typing-indicator');if(el)el.remove();}
@@ -1272,62 +1238,44 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
   /* ──────────────────────────────────────────────────────────────
-     PLANTA BAJA — FOTO (Ladrillo 5b)
+     FOTO — Compresor en loop (demo_10)
      ────────────────────────────────────────────────────────────── */
-  /* mini-modal foto */
-  window.openPhotoChooser=function(){var el=document.getElementById('photo-chooser');el.style.display='flex';};
+  window.openPhotoChooser=function(){document.getElementById('photo-chooser').style.display='flex';};
   window.closePhotoChooser=function(e){if(!e||e.target===document.getElementById('photo-chooser')){document.getElementById('photo-chooser').style.display='none';}};
   window.handlePhotoSelect=function(input){
-    var file=input.files&&input.files[0];
-    input.value=''; // reset para permitir seleccionar el mismo archivo de nuevo
-    if(!file)return;
-    var allowed=['image/jpeg','image/png','image/webp','image/gif'];
-    if(allowed.indexOf(file.type)===-1){setPhotoStatus('⚠️ Solo imágenes JPEG, PNG, WebP o GIF.','error');return;}
+    var file=input.files&&input.files[0];input.value='';if(!file)return;
+    var allowed=['image/jpeg','image/png','image/webp','image/gif'];if(allowed.indexOf(file.type)===-1){setPhotoStatus('⚠️ Solo JPEG, PNG, WebP o GIF.','error');return;}
     setPhotoStatus('Comprimiendo...','info');
-    var reader=new FileReader();
-    reader.onload=function(e){
-      var img=new Image();
-      img.onload=function(){
-        var canvas=document.createElement('canvas');
-        var MAX_DIM=800;
-        var w=img.width,h=img.height;
-        if(w>MAX_DIM||h>MAX_DIM){if(w>h){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}else{w=Math.round(w*MAX_DIM/h);h=MAX_DIM;}}
-        canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        var TARGET_KB=256;
-        var quality=0.80;
-        function intentar(){
-          canvas.toBlob(function(blob){
-            if(blob.size<=TARGET_KB*1024||quality<=0.10){
-              if(blob.size>1*1024*1024){setPhotoStatus('⚠️ Imagen demasiado grande incluso comprimida.','error');selPhotoBlob=null;return;}
-              selPhotoBlob=blob;
-              var previewUrl=URL.createObjectURL(blob);
-              var previewEl=document.getElementById('photo-preview');
-              previewEl.src=previewUrl;previewEl.style.display='block';
-              document.getElementById('photo-placeholder').style.display='none';
-              document.getElementById('photo-upload-area').classList.add('has-photo');
-              var kb=Math.round(blob.size/1024);
-              setPhotoStatus('✅ Lista · '+w+'×'+h+'px · '+kb+'KB','ok');
-            }else{quality=Math.round((quality-0.10)*100)/100;intentar();}
-          },'image/jpeg',quality);
-        }
-        intentar();
-      };
-      img.onerror=function(){setPhotoStatus('⚠️ No se pudo leer la imagen.','error');};
-      img.src=e.target.result;
-    };
-    reader.readAsDataURL(file);
+    var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){
+      var canvas=document.createElement('canvas');var MAX_DIM=800;var w=img.width,h=img.height;
+      if(w>MAX_DIM||h>MAX_DIM){if(w>h){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}else{w=Math.round(w*MAX_DIM/h);h=MAX_DIM;}}
+      canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+      var TARGET_KB=256;var quality=0.80;
+      function intentar(){canvas.toBlob(function(blob){
+        if(blob.size<=TARGET_KB*1024||quality<=0.10){if(blob.size>1*1024*1024){setPhotoStatus('⚠️ Imagen demasiado grande.','error');selPhotoBlob=null;return;}
+          selPhotoBlob=blob;var previewUrl=URL.createObjectURL(blob);var previewEl=document.getElementById('photo-preview');previewEl.src=previewUrl;previewEl.style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');setPhotoStatus('✅ Lista · '+w+'×'+h+'px · '+Math.round(blob.size/1024)+'KB','ok');
+        }else{quality=Math.round((quality-0.10)*100)/100;intentar();}
+      },'image/jpeg',quality);}intentar();
+    };img.onerror=function(){setPhotoStatus('⚠️ No se pudo leer la imagen.','error');};img.src=e.target.result;};reader.readAsDataURL(file);
   };
   async function uploadPhoto(petId){if(!selPhotoBlob)return selPhotoUrl;var fileName=currentUser.id+'/'+petId+'-'+Date.now()+'.jpg';var progressBar=document.getElementById('photo-upload-progress');var bar=document.getElementById('photo-upload-progress-bar');progressBar.classList.add('visible');bar.style.width='30%';try{var res=await sb.storage.from('pet-photos').upload(fileName,selPhotoBlob,{contentType:'image/jpeg',upsert:true});bar.style.width='80%';if(res.error)throw new Error(res.error.message);var urlRes=sb.storage.from('pet-photos').getPublicUrl(fileName);bar.style.width='100%';setTimeout(function(){progressBar.classList.remove('visible');bar.style.width='0';},600);return urlRes.data.publicUrl;}catch(e){progressBar.classList.remove('visible');throw e;}}
   function setPhotoStatus(text,type){var el=document.getElementById('photo-status');if(!el)return;el.textContent=text;el.style.color=type==='error'?'#ff9a9a':type==='ok'?'#34d399':'var(--muted)';}
 
 
   /* ──────────────────────────────────────────────────────────────
-     PLANTA BAJA — GESTIÓN DE MASCOTAS
+     GESTIÓN DE MASCOTAS
      ────────────────────────────────────────────────────────────── */
-  window.openPetForm=function(id){petEditId=id||null;var isEdit=!!petEditId;document.getElementById('pet-name').value='';document.getElementById('pet-breed').value='';document.getElementById('pet-birthdate').value='';document.getElementById('pet-weight').value='';document.getElementById('pet-allergies').value='';document.getElementById('pet-behavior').value='';document.getElementById('pet-traits').value='';document.getElementById('age-preview').innerHTML='';document.getElementById('pet-form-msg').className='auth-msg';document.getElementById('btn-delete-pet').style.display=isEdit?'':'none';document.getElementById('pet-form-title').textContent=isEdit?'Editar mascota':'Agregar mascota';document.getElementById('btn-save-pet-text').textContent=isEdit?'Guardar cambios 🐾':'Guardar mascota 🐾';selPhotoBlob=null;selPhotoUrl=null;document.getElementById('photo-preview').style.display='none';document.getElementById('photo-preview').src='';document.getElementById('photo-placeholder').style.display='';document.getElementById('photo-upload-area').classList.remove('has-photo');document.getElementById('photo-status').textContent='';document.getElementById('photo-file-gallery').value='';document.getElementById('photo-file-camera').value='';selEmoji='🐕';selSpecies='dog';selColor='#34d399';resetSpeciesGrid();resetColorGrid();if(isEdit){var pet=getPetById(petEditId);if(pet){document.getElementById('pet-name').value=pet.name||'';document.getElementById('pet-breed').value=pet.breed||'';document.getElementById('pet-birthdate').value=pet.birthdate||'';document.getElementById('pet-weight').value=pet.weight_kg||'';document.getElementById('pet-allergies').value=pet.allergies||'';document.getElementById('pet-behavior').value=pet.behavior||'';document.getElementById('pet-traits').value=pet.traits||'';selEmoji=pet.emoji||'🐕';selSpecies=pet.species||'dog';selColor=pet.color||'#34d399';selPhotoUrl=pet.photo_url||null;preselectSpecies(pet.emoji);preselectColor(pet.color);if(pet.birthdate)window.updateAgePreview(pet.birthdate);if(pet.photo_url){document.getElementById('photo-preview').src=pet.photo_url;document.getElementById('photo-preview').style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');setPhotoStatus('Foto actual · toca para cambiar','info');}}}document.getElementById('modal-pet-form').classList.remove('hidden');setTimeout(function(){document.getElementById('pet-name').focus();},300);};
+  window.openPetForm=function(id){
+    petEditId=id||null;var isEdit=!!petEditId;
+    ['pet-name','pet-breed','pet-allergies','pet-behavior','pet-traits'].forEach(function(f){document.getElementById(f).value='';});
+    document.getElementById('pet-birthdate').value='';document.getElementById('pet-weight').value='';document.getElementById('age-preview').innerHTML='';document.getElementById('pet-form-msg').className='auth-msg';document.getElementById('btn-delete-pet').style.display=isEdit?'':'none';document.getElementById('pet-form-title').textContent=isEdit?'Editar mascota':'Agregar mascota';document.getElementById('btn-save-pet-text').textContent=isEdit?'Guardar cambios 🐾':'Guardar mascota 🐾';
+    selPhotoBlob=null;selPhotoUrl=null;document.getElementById('photo-preview').style.display='none';document.getElementById('photo-preview').src='';document.getElementById('photo-placeholder').style.display='';document.getElementById('photo-upload-area').classList.remove('has-photo');document.getElementById('photo-status').textContent='';document.getElementById('photo-file-gallery').value='';document.getElementById('photo-file-camera').value='';
+    selEmoji='🐕';selSpecies='dog';selColor='#34d399';resetSpeciesGrid();resetColorGrid();
+    if(isEdit){var pet=getPetById(petEditId);if(pet){document.getElementById('pet-name').value=pet.name||'';document.getElementById('pet-breed').value=pet.breed||'';document.getElementById('pet-birthdate').value=pet.birthdate||'';document.getElementById('pet-weight').value=pet.weight_kg||'';document.getElementById('pet-allergies').value=pet.allergies||'';document.getElementById('pet-behavior').value=pet.behavior||'';document.getElementById('pet-traits').value=pet.traits||'';selEmoji=pet.emoji||'🐕';selSpecies=pet.species||'dog';selColor=pet.color||'#34d399';selPhotoUrl=pet.photo_url||null;preselectSpecies(pet.emoji);preselectColor(pet.color);if(pet.birthdate)window.updateAgePreview(pet.birthdate);if(pet.photo_url){document.getElementById('photo-preview').src=pet.photo_url;document.getElementById('photo-preview').style.display='block';document.getElementById('photo-placeholder').style.display='none';document.getElementById('photo-upload-area').classList.add('has-photo');setPhotoStatus('Foto actual · toca para cambiar','info');}}}
+    document.getElementById('modal-pet-form').classList.remove('hidden');setTimeout(function(){document.getElementById('pet-name').focus();},300);
+  };
   window.closePetForm=function(e){if(!e||e.target===document.getElementById('modal-pet-form'))document.getElementById('modal-pet-form').classList.add('hidden');};
-  window.savePet=async function(){var name=document.getElementById('pet-name').value.trim();if(!name){showPetMsg('El nombre no puede estar vacío.','error');return;}setPetLoading(true);try{var photoUrl=selPhotoUrl;if(selPhotoBlob){var tempId=petEditId||crypto.randomUUID();photoUrl=await uploadPhoto(tempId);}var data={name,emoji:selEmoji,species:selSpecies,color:selColor,photo_url:photoUrl||null,breed:document.getElementById('pet-breed').value.trim()||null,birthdate:document.getElementById('pet-birthdate').value||null,weight_kg:parseFloat(document.getElementById('pet-weight').value)||null,allergies:document.getElementById('pet-allergies').value.trim()||null,behavior:document.getElementById('pet-behavior').value.trim()||null,traits:document.getElementById('pet-traits').value.trim()||null};var res=petEditId?await sb.from('pets').update(data).eq('id',petEditId):await sb.from('pets').insert({...data,user_id:currentUser.id});if(res.error){showPetMsg('Error: '+res.error.message,'error');setPetLoading(false);return;}document.getElementById('modal-pet-form').classList.add('hidden');setPetLoading(false);selPhotoBlob=null;await loadPets();if(!petEditId&&PETS.length>0){curPetId=PETS[PETS.length-1].id;renderPets();updateHubAvatar();await Promise.all([loadDiary(curPetId),loadClinical(curPetId),loadAppts(curPetId)]);}}catch(e){showPetMsg('Error: '+e.message,'error');setPetLoading(false);}};
+  window.savePet=async function(){var name=document.getElementById('pet-name').value.trim();if(!name){showPetMsg('El nombre no puede estar vacío.','error');return;}setPetLoading(true);try{var photoUrl=selPhotoUrl;if(selPhotoBlob){var tempId=petEditId||crypto.randomUUID();photoUrl=await uploadPhoto(tempId);}var data={name,emoji:selEmoji,species:selSpecies,color:selColor,photo_url:photoUrl||null,breed:document.getElementById('pet-breed').value.trim()||null,birthdate:document.getElementById('pet-birthdate').value||null,weight_kg:parseFloat(document.getElementById('pet-weight').value)||null,allergies:document.getElementById('pet-allergies').value.trim()||null,behavior:document.getElementById('pet-behavior').value.trim()||null,traits:document.getElementById('pet-traits').value.trim()||null};var res=petEditId?await sb.from('pets').update(data).eq('id',petEditId):await sb.from('pets').insert({...data,user_id:currentUser.id});if(res.error){showPetMsg('Error: '+res.error.message,'error');setPetLoading(false);return;}document.getElementById('modal-pet-form').classList.add('hidden');setPetLoading(false);selPhotoBlob=null;await loadPets();}catch(e){showPetMsg('Error: '+e.message,'error');setPetLoading(false);}};
   window.deletePet=async function(){if(!petEditId)return;var pet=getPetById(petEditId);if(!confirm('¿Eliminar a '+pet.name+'?'))return;setPetLoading(true);try{if(pet.photo_url){var path=pet.photo_url.split('/pet-photos/')[1];if(path)await sb.storage.from('pet-photos').remove([path]);}var res=await sb.from('pets').delete().eq('id',petEditId);if(res.error){showPetMsg('Error: '+res.error.message,'error');setPetLoading(false);return;}document.getElementById('modal-pet-form').classList.add('hidden');setPetLoading(false);await loadPets();}catch(e){showPetMsg('Error de conexión.','error');setPetLoading(false);}};
   window.selectSpecies=function(btn){selEmoji=btn.getAttribute('data-emoji');selSpecies=btn.getAttribute('data-species');resetSpeciesGrid();btn.classList.add('active');};
   function resetSpeciesGrid(){document.querySelectorAll('.species-btn').forEach(function(b){b.classList.remove('active');});}
@@ -1340,66 +1288,77 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
   /* ──────────────────────────────────────────────────────────────
-     PLANTA BAJA — PORTAL DE TORRES
+     VACUNAS (sub-tab Preventiva)
+     ────────────────────────────────────────────────────────────── */
+  window.openVaccineForm=function(id){vaccineEditId=id||null;var isEdit=!!vaccineEditId;document.getElementById('v-name').value='';document.getElementById('v-applied').value=todayISO();document.getElementById('v-next').value='';document.getElementById('v-vet').value='';document.getElementById('v-notes').value='';document.getElementById('vaccine-form-msg').className='auth-msg';document.getElementById('vaccine-form-title').textContent=isEdit?'Editar vacuna':'Nueva vacuna';document.getElementById('btn-save-vaccine-text').textContent=isEdit?'Guardar cambios 💉':'Guardar vacuna 💉';document.getElementById('btn-delete-vaccine').style.display=isEdit?'':'none';if(isEdit){var v=VACCINES.find(function(x){return x.id===vaccineEditId;});if(v){document.getElementById('v-name').value=v.vaccine_name;document.getElementById('v-applied').value=v.applied_date;document.getElementById('v-next').value=v.next_date||'';document.getElementById('v-vet').value=v.vet_name||'';document.getElementById('v-notes').value=v.notes||'';}}document.getElementById('modal-vaccine-form').classList.remove('hidden');setTimeout(function(){document.getElementById('v-name').focus();},300);};
+  window.closeVaccineForm=function(e){if(!e||e.target===document.getElementById('modal-vaccine-form'))document.getElementById('modal-vaccine-form').classList.add('hidden');};
+  window.saveVaccine=async function(){var name=document.getElementById('v-name').value.trim();var applied=document.getElementById('v-applied').value;if(!name||!applied){showFormMsg('vaccine','Nombre y fecha obligatorios.','error');return;}setFormLoading('vaccine',true);var data={vaccine_name:name,applied_date:applied,next_date:document.getElementById('v-next').value||null,vet_name:document.getElementById('v-vet').value.trim()||null,notes:document.getElementById('v-notes').value.trim()||null};try{var res=vaccineEditId?await sb.from('vaccines').update(data).eq('id',vaccineEditId):await sb.from('vaccines').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showFormMsg('vaccine','Error: '+res.error.message,'error');setFormLoading('vaccine',false);return;}document.getElementById('modal-vaccine-form').classList.add('hidden');setFormLoading('vaccine',false);await loadVaccines(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showFormMsg('vaccine','Error de conexión.','error');setFormLoading('vaccine',false);}};
+  window.deleteVaccine=async function(){if(!vaccineEditId)return;var v=VACCINES.find(function(x){return x.id===vaccineEditId;});if(!confirm('¿Eliminar la vacuna "'+v.vaccine_name+'"?'))return;setFormLoading('vaccine',true);try{var res=await sb.from('vaccines').delete().eq('id',vaccineEditId);if(res.error){showFormMsg('vaccine','Error: '+res.error.message,'error');setFormLoading('vaccine',false);return;}document.getElementById('modal-vaccine-form').classList.add('hidden');setFormLoading('vaccine',false);await loadVaccines(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showFormMsg('vaccine','Error de conexión.','error');setFormLoading('vaccine',false);}};
+  function showFormMsg(form,text,type){var el=document.getElementById(form+'-form-msg');el.textContent=text;el.className='auth-msg '+(type||'error');}
+  function setFormLoading(form,loading){var btn=document.getElementById('btn-save-'+form);var spinner=document.getElementById('spinner-'+form);var txt=document.getElementById('btn-save-'+form+'-text');if(btn)btn.disabled=loading;if(spinner)spinner.classList.toggle('visible',loading);if(txt)txt.style.opacity=loading?'0.5':'1';}
+
+
+  /* ──────────────────────────────────────────────────────────────
+     PORTAL DE TORRES
      ────────────────────────────────────────────────────────────── */
   var MODULE_STATIC={
-    dashboard:'<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">📊</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 1 — Dashboard</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Orbs con datos reales de diario, clínica y agenda 🎉</div><button class="btn-primary" onclick="closeModule()">Cerrar Torre</button></div>',
-    nutricion:'<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">🍽</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 5 — Nutrición</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Calculadora kcal · plan por especie</div><button class="btn-primary" onclick="closeModule()">Cerrar Torre</button></div>',
-    conducta: '<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 6 — Conducta</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Radar de temperamento · gráficas</div><button class="btn-primary" onclick="closeModule()">Cerrar Torre</button></div>',
-    inclusion:'<div style="padding:1rem 0"><div style="text-align:center;margin-bottom:1rem"><div style="font-size:36px;margin-bottom:8px">♿</div><div style="font-size:17px;font-weight:800;margin-bottom:4px">Torre 8 — Inclusión</div></div><div class="incl-grid"><div class="incl-card" onclick="alert(\'Modo Sorda\')" tabindex="0"><span class="incl-icon">🦻</span><div class="incl-name">Sorda</div><div class="incl-sub">Alertas visuales</div></div><div class="incl-card" onclick="alert(\'Modo Ciega\')" tabindex="0"><span class="incl-icon">👁</span><div class="incl-name">Ciega</div><div class="incl-sub">Voz · texto grande</div></div><div class="incl-card" onclick="alert(\'Modo TDAH\')" tabindex="0"><span class="incl-icon">🧠</span><div class="incl-name">TDAH</div><div class="incl-sub">3 pasos</div></div><div class="incl-card" onclick="alert(\'Modo Movilidad\')" tabindex="0"><span class="incl-icon">♿</span><div class="incl-name">Movilidad</div><div class="incl-sub">Botones grandes</div></div></div><button class="btn-primary" onclick="closeModule()">Cerrar Torre</button></div>',
-    red:      '<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">👥</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Red de Apoyo</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Veterinario · cuidador · entrenador</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>',
-    perfil:   '<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">📲</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Perfil + QR</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">QR escaneable · niveles de acceso</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>',
-    social:   '<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">🐾</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Red Social</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Perfil · match para paseos</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>',
-    tienda:   '<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">🛒</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Marketplace</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Alimentos · servicios · vets</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>'
+    dashboard:'<div style="text-align:center;padding:1rem 0"><div style="font-size:40px;margin-bottom:12px">📊</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 1 — Dashboard</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Orbs con datos reales 🎉</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>',
+    nutricion:'<div style="padding:1rem 0">'+buildFamiliarCardStatic(['alergias','peso','especie'])+'<div style="text-align:center;margin-top:1rem"><div style="font-size:40px;margin-bottom:12px">🍽</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 5 — Nutrición</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Calculadora kcal · plan por especie · próximamente</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div></div>',
+    conducta: '<div style="padding:1rem 0">'+buildFamiliarCardStatic(['conducta','rasgos'])+'<div style="text-align:center;margin-top:1rem"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">Torre 6 — Conducta</div><div style="font-size:14px;color:var(--sub);margin-bottom:1.5rem">Radar de temperamento · gráficas · próximamente</div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div></div>',
+    inclusion:'<div style="padding:1rem 0"><div style="text-align:center;margin-bottom:1rem"><div style="font-size:36px;margin-bottom:8px">♿</div><div style="font-size:17px;font-weight:800;margin-bottom:4px">Inclusión — Modos de accesibilidad</div></div><div class="incl-grid"><div class="incl-card" onclick="alert(\'Modo Sorda\')" tabindex="0"><span class="incl-icon">🦻</span><div class="incl-name">Sorda</div><div class="incl-sub">Alertas visuales</div></div><div class="incl-card" onclick="alert(\'Modo Ciega\')" tabindex="0"><span class="incl-icon">👁</span><div class="incl-name">Ciega</div><div class="incl-sub">Voz · texto grande</div></div><div class="incl-card" onclick="alert(\'Modo TDAH\')" tabindex="0"><span class="incl-icon">🧠</span><div class="incl-name">TDAH</div><div class="incl-sub">3 pasos · foco</div></div><div class="incl-card" onclick="alert(\'Modo Movilidad\')" tabindex="0"><span class="incl-icon">♿</span><div class="incl-name">Movilidad</div><div class="incl-sub">Botones grandes</div></div></div><button class="btn-primary" onclick="closeModule()">Cerrar</button></div>'
   };
+
+  /* Helper estático para torres que aún no se renderizan dinámicamente */
+  function buildFamiliarCardStatic(fields){var pet=getPetById(curPetId);return pet?buildFamiliarCard(pet,fields):'';}
 
   window.openModule=function(id){
     var modal=document.getElementById('modal-module');
     var towerName=(MODULES.find(function(m){return m.id===id;})||{}).name||id;
     modal.setAttribute('aria-label','Torre: '+towerName);
-    if(id==='agenda'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderAgendaContent();}
+    if(id==='cuidado'){careTab='preventiva';document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderCuidadoContent();}
     else if(id==='ia'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderIAContent();}
-    else if(id==='clinica'){clinicTab='vaccines';document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderClinicContent();}
+    else if(id==='agenda'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderAgendaContent();}
     else if(id==='diario'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderDiaryTimeline();}
+    else if(id==='nutricion'){document.getElementById('modal-module-content').innerHTML=MODULE_STATIC.nutricion;modal.classList.remove('hidden');}
+    else if(id==='conducta'){document.getElementById('modal-module-content').innerHTML=MODULE_STATIC.conducta;modal.classList.remove('hidden');}
     else{var content=MODULE_STATIC[id]||'<div style="text-align:center;padding:2rem"><div style="font-size:40px;margin-bottom:12px">🔧</div><div style="font-size:16px;font-weight:700">Torre en construcción</div><button class="btn-primary" style="margin-top:1rem" onclick="closeModule()">Volver</button></div>';document.getElementById('modal-module-content').innerHTML=content;modal.classList.remove('hidden');}
   };
   window.closeModule=function(e){if(!e||e.target===document.getElementById('modal-module'))document.getElementById('modal-module').classList.add('hidden');};
 
 
   /* ──────────────────────────────────────────────────────────────
-     PLANTA BAJA — ADMIN / MARCA BLANCA / TEMAS
+     ADMIN / MARCA BLANCA / TEMAS
      ────────────────────────────────────────────────────────────── */
   window.openSettings=function(){document.getElementById('modal-settings').classList.remove('hidden');};
   window.closeSettings=function(e){if(!e||e.target===document.getElementById('modal-settings'))document.getElementById('modal-settings').classList.add('hidden');};
-  window.openBackoffice=function(){document.getElementById('modal-settings').classList.add('hidden');var inp=document.getElementById('bo-api-key');if(inp)inp.value=ANTHROPIC_KEY||'';updateBoApiStatus();document.getElementById('modal-backoffice').classList.remove('hidden');};
-  window.closeBackoffice=function(e){if(!e||e.target===document.getElementById('modal-backoffice'))document.getElementById('modal-backoffice').classList.add('hidden');};
-  window.updateAnthropicKey=function(val){ANTHROPIC_KEY=val;updateBoApiStatus();};
-  function updateBoApiStatus(){var el=document.getElementById('bo-api-status');if(!el)return;if(ANTHROPIC_KEY&&ANTHROPIC_KEY.startsWith('sk-ant-')){el.textContent='✓ Formato válido';el.style.color='#34d399';}else if(ANTHROPIC_KEY&&ANTHROPIC_KEY.length>0){el.textContent='⚠ Formato esperado: sk-ant-...';el.style.color='#fbbf24';}else{el.textContent='Sin API key — Torre 7 desactivada';el.style.color='var(--muted)';}}
-  window.saveBackoffice=function(){if(ANTHROPIC_KEY)localStorage.setItem('peludos_anthropic_key',ANTHROPIC_KEY);document.getElementById('modal-backoffice').classList.add('hidden');alert('✅ Configuración guardada.');};
-  window.updateAppName=function(val){var name=val||'Peludos';document.getElementById('app-title').textContent=name;document.getElementById('login-app-title').textContent=name+' App';var inp=document.getElementById('app-name-input');if(inp&&inp.value!==val)inp.value=val;var bo=document.getElementById('bo-name');if(bo&&bo.value!==val)bo.value=val;};
+  window.updateAppName=function(val){var name=val||'Peludos';document.getElementById('app-title').textContent=name;document.getElementById('login-app-title').textContent=name+' App';var inp=document.getElementById('app-name-input');if(inp&&inp.value!==val)inp.value=val;};
   window.setTheme=function(name,btn){document.querySelectorAll('.swatch').forEach(function(s){s.classList.remove('active');});if(btn)btn.classList.add('active');var t=THEMES[name]||THEMES.mascotas;var r=document.documentElement;r.style.setProperty('--bg',t.bg);r.style.setProperty('--bg2',t.bg2);r.style.setProperty('--teal',t.teal);r.style.setProperty('--teal-l',t.teal);r.style.setProperty('--teal-d',t.tealD);r.style.setProperty('--coral',t.coral);r.style.setProperty('--coral-l',t.coral);r.style.setProperty('--glass',t.glass);r.style.setProperty('--glass2',t.glass2);r.style.setProperty('--border',t.border);r.style.setProperty('--border2',t.border2);r.style.setProperty('--text',t.text);r.style.setProperty('--sub',t.sub);r.style.setProperty('--muted',t.muted);};
   function renderModules(){document.getElementById('modules-grid').innerHTML=MODULES.map(function(m){return '<div class="mod-card" role="listitem" onclick="openModule(\''+m.id+'\')" tabindex="0" aria-label="'+m.name+'" onkeydown="if(event.key===\'Enter\'||event.key===\' \')openModule(\''+m.id+'\')">'+(m.badge?'<div class="mod-badge '+m.badgeClass+'">'+m.badge+'</div>':'')+'<span class="mod-icon" aria-hidden="true">'+m.icon+'</span><div class="mod-name">'+m.name+'</div><div class="mod-sub">'+m.sub+'</div></div>';}).join('');}
   function buildOrb(val,label,trend,color){return '<div class="orb-card" role="listitem"><div class="orb-val" style="color:'+color+'">'+val+'</div><div class="orb-label">'+label+'</div><div class="orb-trend" style="color:'+color+'">'+trend+'</div></div>';}
+  function renderOrbsHub(diary,vaccines,appts){
+    var lastMood='—';var moodColor='#40E0D0';if(diary.length>0){lastMood=diary[0].mood;moodColor=['😄','😊','😌'].indexOf(lastMood)!==-1?'#f472b6':'#fbbf24';}
+    var streak=calcStreak(diary);var vaccAlerts=getVaccineAlerts(vaccines);var alertColor=vaccAlerts.length>0?'#fbbf24':'#34d399';
+    var nextAppt=appts?appts.filter(function(a){return!a.completed&&daysUntilDate(a.appointment_date)>=0;}).sort(function(a,b){return a.appointment_date>b.appointment_date?1:-1;})[0]:null;
+    var agendaVal=nextAppt?'📅':'—';var agendaTrend=nextAppt?(daysUntilDate(nextAppt.appointment_date)===0?'¡Hoy!':'en '+daysUntilDate(nextAppt.appointment_date)+'d'):'sin citas';var agendaColor=nextAppt&&daysUntilDate(nextAppt.appointment_date)<=3?'#fbbf24':'#40E0D0';
+    document.getElementById('orbs-row').innerHTML=buildOrb(lastMood==='—'?'—':lastMood,'Emoción',lastMood==='—'?'sin datos':'último registro',moodColor)+buildOrb(streak>0?streak+'d':'0d','Racha',streak>=3?'🔥 en racha':'del diario',streak>=3?'#40E0D0':'#fbbf24')+buildOrb(vaccAlerts.length>0?'⚠ '+vaccAlerts.length:'✓','Alertas',vaccAlerts.length>0?vaccAlerts.length+' vacuna'+(vaccAlerts.length===1?'':'s'):'todo ok',alertColor)+buildOrb(agendaVal,'Agenda',agendaTrend,agendaColor);
+  }
 
 
   /* ──────────────────────────────────────────────────────────────
-     TORRE HUB — ACCIONES CRÍTICAS
+     ACCIONES CRÍTICAS
      ────────────────────────────────────────────────────────────── */
   window.showHubAlert=function(){
-    var vaccAlerts=getVaccineAlerts(VACCINES);
-    var upcoming=getUpcomingAppts(APPTS,3);
-    var active=getPetById(curPetId);var name=active?active.name:'tu mascota';
-    var msg='';
+    var vaccAlerts=getVaccineAlerts(VACCINES);var upcoming=getUpcomingAppts(APPTS,3);var active=getPetById(curPetId);var name=active?active.name:'tu mascota';
     if(vaccAlerts.length===0&&upcoming.length===0){alert('Sin alertas activas para '+name+' 🎉\n\nTodo está al día.');return;}
-    if(vaccAlerts.length>0){msg+='🚨 VACUNAS:\n';vaccAlerts.forEach(function(v){var d=daysUntil(v.next_date);var l=d<0?'Vencida hace '+Math.abs(d)+'d':d===0?'HOY':'en '+d+'d';msg+='• '+v.vaccine_name+' — '+l+'\n';});msg+='\n';}
-    if(upcoming.length>0){msg+='📅 CITAS PRÓXIMAS:\n';upcoming.forEach(function(a){var d=daysUntilDate(a.appointment_date);var l=d===0?'Hoy':d===1?'Mañana':'en '+d+' días';msg+='• '+(APPT_ICONS[a.appointment_type]||'📋')+' '+a.title+' — '+l+'\n';});}
+    var msg='';if(vaccAlerts.length>0){msg+='🚨 VACUNAS:\n';vaccAlerts.forEach(function(v){var d=daysUntil(v.next_date);msg+='• '+v.vaccine_name+' — '+(d<0?'Vencida hace '+Math.abs(d)+'d':d===0?'HOY':'en '+d+'d')+'\n';});msg+='\n';}
+    if(upcoming.length>0){msg+='📅 CITAS PRÓXIMAS:\n';upcoming.forEach(function(a){var d=daysUntilDate(a.appointment_date);msg+='• '+(APPT_ICONS[a.appointment_type]||'📋')+' '+a.title+' — '+(d===0?'Hoy':d===1?'Mañana':'en '+d+' días')+'\n';});}
     alert(msg);
   };
   window.showSOS=function(){var active=getPetById(curPetId);var label=active?active.emoji+' '+active.name:'🐾 tu mascota';alert('🆘 EMERGENCIA ACTIVADA\n\n'+label+'\n\nNotificando red de apoyo...\n\n• WhatsApp\n• Veterinario\n• Clínica PetCare: 604 555 0100');};
 
 
   /* ──────────────────────────────────────────────────────────────
-     PLANTA BAJA — HELPERS
+     HELPERS
      ────────────────────────────────────────────────────────────── */
   window.switchTab=function(tab){clearMsg();var isLogin=tab==='login';document.getElementById('tab-login').classList.toggle('active',isLogin);document.getElementById('tab-register').classList.toggle('active',!isLogin);document.getElementById('tab-login').setAttribute('aria-selected',isLogin);document.getElementById('tab-register').setAttribute('aria-selected',!isLogin);document.getElementById('form-login').style.display=isLogin?'':'none';document.getElementById('form-register').style.display=isLogin?'none':'';};
   function showMsg(text,type){var el=document.getElementById('auth-msg');el.textContent=text;el.className='auth-msg '+(type||'error');}

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peludos — Mascota encontrada</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1a9e8f;--teal-l:#40E0D0;--teal-d:#0d6b60;
+  --coral:#FF6B6B;--coral-l:#ff9a9a;
+  --bg:#0d2b28;--bg2:#122e2a;--bg3:#1a3d38;
+  --glass:rgba(64,224,208,0.07);--glass2:rgba(64,224,208,0.12);
+  --border:rgba(64,224,208,0.18);--border2:rgba(64,224,208,0.28);
+  --text:#e0faf8;--sub:rgba(224,250,248,0.6);--muted:rgba(224,250,248,0.35);
+  --font-main:'Nunito',sans-serif;--font-display:'Playfair Display',serif;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-main)}
+
+/* Orbs de fondo */
+#bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);animation:orb-drift 14s ease-in-out infinite}
+.orb-1{width:500px;height:500px;background:rgba(64,224,208,0.13);top:-150px;left:-150px}
+.orb-2{width:350px;height:350px;background:rgba(255,107,107,0.10);bottom:-80px;right:-80px;animation-delay:5s}
+@keyframes orb-drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-15px) scale(1.04)}}
+
+/* Layout */
+.page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem 3rem}
+.card{width:100%;max-width:400px;background:rgba(13,43,40,0.88);backdrop-filter:blur(28px);border:1.5px solid var(--border2);border-radius:28px;padding:0;overflow:hidden}
+
+/* Header urgente */
+.alert-bar{background:linear-gradient(135deg,var(--coral),#e84a4a);padding:12px 20px;display:flex;align-items:center;gap:10px;animation:pulse-bar 2s ease-in-out infinite}
+@keyframes pulse-bar{0%,100%{opacity:1}50%{opacity:.85}}
+.alert-bar-icon{font-size:22px}
+.alert-bar-text{font-size:13px;font-weight:800;color:#fff;line-height:1.3}
+
+/* Foto */
+.photo-wrap{position:relative;width:100%;height:240px;overflow:hidden}
+.pet-photo{width:100%;height:100%;object-fit:cover}
+.pet-photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;background:var(--bg3)}
+.photo-gradient{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,rgba(13,43,40,0.95),transparent)}
+.pet-name-overlay{position:absolute;bottom:16px;left:20px;font-family:var(--font-display);font-size:32px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+
+/* Contenido */
+.card-body{padding:1.25rem 1.25rem 1.5rem}
+
+/* Chips de info */
+.info-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:var(--glass2);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text)}
+
+/* Alergias — destacado */
+.allergy-box{background:rgba(255,107,107,0.10);border:1.5px solid rgba(255,107,107,0.30);border-radius:14px;padding:10px 14px;margin-bottom:1.25rem;display:none}
+.allergy-title{font-size:11px;font-weight:800;color:#ff9a9a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.allergy-text{font-size:13px;color:var(--text);line-height:1.5}
+
+/* Botón GPS — protagonista */
+.btn-gps{width:100%;padding:18px;border-radius:18px;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-size:17px;font-weight:900;font-family:var(--font-main);cursor:pointer;transition:all .2s;letter-spacing:.2px;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;box-shadow:0 6px 24px rgba(26,158,143,0.35)}
+.btn-gps:hover{filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 10px 32px rgba(26,158,143,0.45)}
+.btn-gps:active{transform:translateY(0)}
+.btn-gps:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-gps-pulse{animation:gps-pulse 1.8s ease-in-out infinite}
+@keyframes gps-pulse{0%,100%{box-shadow:0 6px 24px rgba(26,158,143,0.35)}50%{box-shadow:0 6px 36px rgba(26,158,143,0.6)}}
+
+/* Botón WA */
+.btn-wa{width:100%;padding:14px;border-radius:18px;border:1.5px solid rgba(37,211,102,0.35);background:rgba(37,211,102,0.08);color:#25d366;font-size:15px;font-weight:800;font-family:var(--font-main);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-wa:hover{background:rgba(37,211,102,0.15);border-color:rgba(37,211,102,0.5)}
+
+/* Estados del GPS */
+.gps-status{text-align:center;padding:14px;border-radius:14px;margin-bottom:10px;font-size:13px;font-weight:700;display:none;line-height:1.5}
+.gps-status.loading{background:var(--glass2);border:1px solid var(--border);color:var(--sub);display:block}
+.gps-status.success{background:rgba(64,224,208,0.12);border:1.5px solid rgba(64,224,208,0.35);color:var(--teal-l);display:block}
+.gps-status.error{background:rgba(255,107,107,0.10);border:1.5px solid rgba(255,107,107,0.30);color:#ff9a9a;display:block}
+
+/* Spinner */
+.spinner{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;animation:spin .7s linear infinite;display:none;flex-shrink:0}
+.spinner.visible{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Footer */
+.footer{margin-top:1.5rem;text-align:center;font-size:11px;color:var(--muted);line-height:1.6}
+.footer a{color:var(--teal-l);font-weight:700;text-decoration:none}
+
+/* Loading inicial */
+#loading-state{text-align:center;padding:3rem 1rem}
+.loading-paw{font-size:52px;animation:paw-spin 1s ease-in-out infinite}
+@keyframes paw-spin{0%,100%{transform:scale(1) rotate(-10deg)}50%{transform:scale(1.15) rotate(10deg)}}
+.loading-txt{font-size:15px;color:var(--sub);margin-top:12px}
+
+/* Error state */
+#error-state{text-align:center;padding:3rem 1rem;display:none}
+.error-icon{font-size:52px;margin-bottom:12px}
+.error-title{font-size:20px;font-weight:800;margin-bottom:8px}
+.error-sub{font-size:14px;color:var(--sub);line-height:1.5}
+
+/* Confirmación animada */
+.confirm-overlay{position:fixed;inset:0;z-index:100;background:rgba(13,43,40,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:2rem;backdrop-filter:blur(12px)}
+.confirm-overlay.visible{display:flex;animation:fade-in .4s ease}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.confirm-icon{font-size:72px;animation:bounce-in .5s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes bounce-in{from{transform:scale(0)}to{transform:scale(1)}}
+.confirm-title{font-family:var(--font-display);font-size:28px;color:var(--teal-l)}
+.confirm-sub{font-size:15px;color:var(--sub);max-width:280px;line-height:1.6}
+.confirm-close{margin-top:8px;padding:12px 28px;border-radius:14px;border:1.5px solid var(--border2);background:var(--glass2);color:var(--text);font-size:14px;font-weight:800;font-family:var(--font-main);cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<!-- Confirmación -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-icon">🐾</div>
+  <div class="confirm-title">¡Gracias!</div>
+  <div class="confirm-sub" id="confirm-msg">Tu ubicación fue enviada al dueño. Pronto te contactará.</div>
+  <button class="confirm-close" onclick="document.getElementById('confirm-overlay').classList.remove('visible')">Cerrar</button>
+</div>
+
+<div class="page">
+
+  <!-- Loading -->
+  <div id="loading-state">
+    <div class="loading-paw">🐾</div>
+    <div class="loading-txt">Cargando información...</div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-state">
+    <div class="error-icon">😕</div>
+    <div class="error-title">Mascota no encontrada</div>
+    <div class="error-sub">El código QR puede estar desactualizado o la mascota fue dada de baja del sistema.</div>
+  </div>
+
+  <!-- Card principal -->
+  <div class="card" id="pet-card" style="display:none">
+
+    <div class="alert-bar">
+      <span class="alert-bar-icon">🚨</span>
+      <div class="alert-bar-text">¡Esta mascota podría estar perdida!<br>Por favor ayuda a reunirla con su familia 🐾</div>
+    </div>
+
+    <div class="photo-wrap">
+      <div id="photo-container"></div>
+      <div class="photo-gradient"></div>
+      <div class="pet-name-overlay" id="pet-name-overlay"></div>
+    </div>
+
+    <div class="card-body">
+
+      <div class="info-chips" id="info-chips"></div>
+
+      <div class="allergy-box" id="allergy-box">
+        <div class="allergy-title">⚠️ Alergias / Condiciones especiales</div>
+        <div class="allergy-text" id="allergy-text"></div>
+      </div>
+
+      <div class="gps-status" id="gps-status"></div>
+
+      <button class="btn-gps btn-gps-pulse" id="btn-gps" onclick="compartirUbicacion()">
+        <div class="spinner" id="gps-spinner"></div>
+        <span id="btn-gps-text">📍 Compartir mi ubicación para ayudar</span>
+      </button>
+
+      <button class="btn-wa" id="btn-wa" style="display:none" onclick="contactarDueno()">
+        💬 Contactar al dueño por WhatsApp
+      </button>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by <a href="#">Peludos App</a> — Gestión inteligente de mascotas
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+
+  var SUPABASE_URL      = 'https://sfgsyltgpwvjxqluxvbw.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmZ3N5bHRncHd2anhxbHV4dmJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwOTY5MDIsImV4cCI6MjA5MDY3MjkwMn0.LD9w2MXpfiHsEhIGyZT1ZxQRe_KLV1yVXrgedThdFTE';
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var petId = null;
+  var pet   = null;
+  var scanId = null;
+  var ubicacionCompartida = false;
+
+  function escapeHtml(str){
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function calcAge(birthdate){
+    if(!birthdate)return null;
+    var hoy=new Date();var nac=new Date(birthdate+'T12:00:00');
+    var meses=(hoy.getFullYear()-nac.getFullYear())*12+(hoy.getMonth()-nac.getMonth());
+    if(meses<1)return'Recién nacido';
+    if(meses<12)return meses+' mes'+(meses===1?'':'es');
+    var años=Math.floor(meses/12);var m=meses%12;
+    return años+' año'+(años===1?'':'s')+(m>0?' y '+m+' mes'+(m===1?'':'es'):'');
+  }
+
+  /* Registrar el escaneo en Supabase sin GPS primero */
+  async function registrarEscaneo(lat, lng, accuracy){
+    try{
+      var data={
+        pet_id: petId,
+        user_agent: navigator.userAgent,
+        latitude: lat||null,
+        longitude: lng||null,
+        accuracy: accuracy||null
+      };
+      var res = await sb.from('qr_scans').insert(data).select().single();
+      if(res.data) scanId = res.data.id;
+    }catch(e){ console.error('Error registrando escaneo:', e); }
+  }
+
+  /* Actualizar escaneo con coordenadas si ya fue creado */
+  async function actualizarEscaneoGPS(lat, lng, accuracy){
+    if(!scanId) return;
+    try{
+      await sb.from('qr_scans').update({latitude:lat, longitude:lng, accuracy:accuracy}).eq('id', scanId);
+    }catch(e){ console.error('Error actualizando GPS:', e); }
+  }
+
+  async function init(){
+    var params = new URLSearchParams(window.location.search);
+    petId = params.get('id');
+
+    if(!petId){
+      showError(); return;
+    }
+
+    /* Registrar escaneo sin GPS de inmediato */
+    await registrarEscaneo(null, null, null);
+
+    /* Cargar datos de la mascota */
+    try{
+      var res = await sb.from('pets').select('*').eq('id', petId).single();
+      if(res.error || !res.data){ showError(); return; }
+      pet = res.data;
+      renderPet(pet);
+    }catch(e){ showError(); }
+  }
+
+  function renderPet(p){
+    /* Foto */
+    var photoContainer = document.getElementById('photo-container');
+    if(p.photo_url){
+      photoContainer.innerHTML = '<img class="pet-photo" src="'+escapeHtml(p.photo_url)+'" alt="'+escapeHtml(p.name)+'">';
+    } else {
+      photoContainer.innerHTML = '<div class="pet-photo-placeholder">'+escapeHtml(p.emoji||'🐾')+'</div>';
+    }
+
+    /* Nombre */
+    document.getElementById('pet-name-overlay').textContent = p.name;
+    document.title = 'Peludos — ' + p.name;
+
+    /* Actualizar texto del botón GPS con nombre */
+    document.getElementById('btn-gps-text').textContent = '📍 Compartir mi ubicación para ayudar a ' + p.name;
+
+    /* Chips de info */
+    var chips = [];
+    var especieLabel = {dog:'Perro',cat:'Gato',bird:'Ave',rabbit:'Conejo',fish:'Pez',other:'Otro'};
+    if(p.species) chips.push('🐾 ' + (especieLabel[p.species]||p.species));
+    if(p.breed)   chips.push('🏷 ' + p.breed);
+    if(p.birthdate){ var edad=calcAge(p.birthdate); if(edad) chips.push('🎂 ' + edad); }
+    if(p.weight_kg) chips.push('⚖️ ' + p.weight_kg + ' kg');
+
+    document.getElementById('info-chips').innerHTML = chips.map(function(c){
+      return '<span class="chip">'+escapeHtml(c)+'</span>';
+    }).join('');
+
+    /* Alergias */
+    if(p.allergies){
+      document.getElementById('allergy-text').textContent = p.allergies;
+      document.getElementById('allergy-box').style.display = 'block';
+    }
+
+    /* Botón WA — buscar dueño */
+    cargarWaDueno(p.user_id);
+
+    /* Mostrar card */
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('pet-card').style.display = '';
+  }
+
+  async function cargarWaDueno(userId){
+    /* Buscar contacto del dueño en support_network con rol veterinario u otro,
+       o simplemente mostrar el botón si el dueño tiene teléfono en su perfil.
+       Por ahora buscamos en support_network el primer contacto SOS del dueño. */
+    try{
+      var res = await sb.from('support_network').select('phone,name').eq('pet_id', petId).eq('alert_sos', true).limit(1);
+      if(res.data && res.data.length > 0){
+        var contacto = res.data[0];
+        var btnWa = document.getElementById('btn-wa');
+        btnWa.style.display = '';
+        btnWa.setAttribute('data-phone', contacto.phone.replace(/\D/g,''));
+        btnWa.setAttribute('data-name', contacto.name);
+      }
+    }catch(e){}
+  }
+
+  window.contactarDueno = function(){
+    var btn = document.getElementById('btn-wa');
+    var phone = btn.getAttribute('data-phone');
+    var petName = pet ? pet.name : 'tu mascota';
+    var msg = '¡Hola! Encontré a ' + petName + ' escaneando su código QR. ¿Puedo ayudarte a reunirte con él/ella? 🐾';
+    window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
+  };
+
+  window.compartirUbicacion = function(){
+    if(ubicacionCompartida) return;
+
+    var btn    = document.getElementById('btn-gps');
+    var spinner= document.getElementById('gps-spinner');
+    var txt    = document.getElementById('btn-gps-text');
+    var status = document.getElementById('gps-status');
+
+    if(!navigator.geolocation){
+      status.className = 'gps-status error';
+      status.textContent = '⚠️ Tu navegador no soporta geolocalización. Intenta contactar al dueño por WhatsApp.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.remove('btn-gps-pulse');
+    spinner.classList.add('visible');
+    txt.textContent = 'Obteniendo ubicación...';
+    status.className = 'gps-status loading';
+    status.textContent = '📡 Solicitando permiso de ubicación...';
+
+    navigator.geolocation.getCurrentPosition(
+      async function(pos){
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        var acc = Math.round(pos.coords.accuracy);
+
+        status.textContent = '📡 Enviando ubicación...';
+
+        if(scanId){
+          await actualizarEscaneoGPS(lat, lng, acc);
+        } else {
+          await registrarEscaneo(lat, lng, acc);
+        }
+
+        ubicacionCompartida = true;
+        spinner.classList.remove('visible');
+        btn.disabled = true;
+        txt.textContent = '✅ Ubicación compartida';
+        btn.style.background = 'linear-gradient(135deg,#059669,#047857)';
+
+        status.className = 'gps-status success';
+        var precisionTxt = acc < 50 ? 'alta precisión (±'+acc+'m)' : acc < 200 ? 'precisión media (±'+acc+'m)' : 'baja precisión (±'+acc+'m)';
+        status.textContent = '✅ Ubicación enviada con ' + precisionTxt + '. ¡Gracias por ayudar!';
+
+        /* Mostrar confirmación */
+        var petName = pet ? pet.name : 'la mascota';
+        document.getElementById('confirm-msg').textContent =
+          'Tu ubicación fue enviada al dueño de ' + petName + '. Pronto te contactará. ¡Gracias por tu ayuda! 🐾';
+        document.getElementById('confirm-overlay').classList.add('visible');
+      },
+      function(err){
+        spinner.classList.remove('visible');
+        btn.disabled = false;
+        btn.classList.add('btn-gps-pulse');
+        txt.textContent = '📍 Reintentar compartir ubicación';
+
+        var msg = '⚠️ ';
+        if(err.code === 1) msg += 'Permiso denegado. Por favor activa la ubicación en tu navegador e intenta de nuevo.';
+        else if(err.code === 2) msg += 'No se pudo obtener tu ubicación. Verifica tu conexión.';
+        else msg += 'Error al obtener ubicación. Intenta de nuevo.';
+
+        status.className = 'gps-status error';
+        status.textContent = msg;
+      },
+      {enableHighAccuracy: true, timeout: 12000, maximumAge: 0}
+    );
+  };
+
+  function showError(){
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'block';
+  }
+
+  init();
+
+})();
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  PELUDOS APP — ARQUITECTURA "COMPLEJO DE TORRES"                ║
-  ║  Versión: demo_16 — SMS en Red de Apoyo + Módulo QR completo    ║
+  ║  Versión: demo_17 — PDF mascota + QR/Diario en Historial        ║
   ║                                                                  ║
   ║  CAMBIOS respecto a demo_10:                                     ║
   ║  1. 'Información del Familiar' contextual por torre              ║
@@ -40,6 +40,7 @@
 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
@@ -547,6 +548,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔔</span><div class="settings-body"><div class="settings-label">Notificaciones</div></div><label class="toggle-wrap"><input type="checkbox" checked><div class="toggle-track"><div class="toggle-thumb"></div></div></label></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">👥</span><div class="settings-body"><div class="settings-label">Red de Apoyo</div><div class="settings-sub">Contactos · alertas WhatsApp</div></div><button class="settings-action" onclick="closeSettings();openRedApoyo()">Abrir</button></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🐾</span><div class="settings-body"><div class="settings-label">QR · Localización</div><div class="settings-sub">Collar QR · historial de escaneos · mapa</div></div><button class="settings-action" onclick="closeSettings();openQR()" style="position:relative">Abrir<span id="qr-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--coral);color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center"></span></button></div>
+    <div class="settings-row"><span class="settings-icon" aria-hidden="true">📄</span><div class="settings-body"><div class="settings-label">Ficha PDF</div><div class="settings-sub">Descarga la ficha completa de tu mascota</div></div><button class="settings-action" onclick="closeSettings();generarPDF()">Generar</button></div>
     <!-- Inclusión reemplaza Backoffice (Cambio 5) -->
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">♿</span><div class="settings-body"><div class="settings-label">Inclusión</div><div class="settings-sub">Modos de accesibilidad</div></div><button class="settings-action" onclick="closeSettings();openModule('inclusion')">Abrir</button></div>
     <button class="btn-ghost" style="margin-top:1rem;border-color:rgba(255,107,107,.3);color:#ff9a9a" onclick="doLogout()">Cerrar sesión</button>
@@ -1020,6 +1022,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       '<div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap">'+
         '<button class="care-fab" style="margin-bottom:0" onclick="closeModule();setTimeout(function(){openModule(\'agenda\');setTimeout(function(){openApptForm();},100);},100)">📅 Sacar cita</button>'+
         '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--teal-l);box-shadow:none;border:1.5px solid var(--border)" onclick="openCareForm(\'higiene\')">➕ Registro manual</button>'+
+        '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--coral);box-shadow:none;border:1.5px solid var(--border)" onclick="generarPDF()">📄 Ficha PDF</button>'+
       '</div>';
 
     /* ── Construir línea de tiempo unificada ── */
@@ -1073,6 +1076,39 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
         alerta: false,
         alertaTxt: '',
         onclick: 'openApptForm(\''+a.id+'\')'
+      });
+    });
+
+    /* Entradas de Diario */
+    DIARY.forEach(function(e){
+      items.push({
+        fecha: e.entry_date?e.entry_date.split('T')[0]:(e.created_at?e.created_at.split('T')[0]:''),
+        icono: e.mood||'📓',
+        titulo: escapeHtml(e.note?e.note.substring(0,60)+(e.note.length>60?'…':''):'Entrada de diario'),
+        badge: '📓 Diario',
+        badgeCss: 'cb-otro',
+        sub: '',
+        alerta: false,
+        alertaTxt: '',
+        onclick: 'openDiaryForm(\''+e.id+'\')'
+      });
+    });
+
+    /* Escaneos QR con ubicación */
+    QR_SCANS.forEach(function(s){
+      var fecha=s.scanned_at?s.scanned_at.split('T')[0]:'';
+      var hora=s.scanned_at?new Date(s.scanned_at).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}):'';
+      var sub=s.latitude?'📍 GPS ±'+(s.accuracy?Math.round(s.accuracy)+'m':'?'):'sin ubicación';
+      items.push({
+        fecha: fecha,
+        icono: '🔲',
+        titulo: 'Collar escaneado'+( hora?' a las '+hora:''),
+        badge: '🔲 QR',
+        badgeCss: 'cb-otro',
+        sub: sub,
+        alerta: false,
+        alertaTxt: '',
+        onclick: 'openQR()'
       });
     });
 
@@ -1422,11 +1458,11 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   /* Helper estático para torres que aún no se renderizan dinámicamente */
   function buildFamiliarCardStatic(fields){var pet=getPetById(curPetId);return pet?buildFamiliarCard(pet,fields):'';}
 
-  window.openModule=function(id){
+  window.openModule=async function(id){
     var modal=document.getElementById('modal-module');
     var towerName=(MODULES.find(function(m){return m.id===id;})||{}).name||id;
     modal.setAttribute('aria-label','Torre: '+towerName);
-    if(id==='cuidado'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderCuidadoContent();}
+    if(id==='cuidado'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');if(curPetId&&QR_SCANS.length===0)await loadQRScans(curPetId);renderCuidadoContent();}
     else if(id==='ia'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderIAContent();}
     else if(id==='agenda'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderAgendaContent();}
     else if(id==='diario'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderDiaryTimeline();}
@@ -1859,6 +1895,197 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       }catch(e){el.innerHTML='<div style="color:var(--coral);padding:1rem">Error cargando mapa. Verifica conexión.</div>';}
     },100);
   }
+
+  /* ─── MÓDULO PDF ─── */
+  window.generarPDF=async function(){
+    if(!curPetId){alert('Selecciona una mascota primero.');return;}
+    var pet=getPetById(curPetId);
+    if(!pet){alert('Mascota no encontrada.');return;}
+
+    /* Asegurar QR scans cargados */
+    if(QR_SCANS.length===0)await loadQRScans(curPetId);
+
+    /* Generar QR como dataURL */
+    var qrDataUrl=await new Promise(function(resolve){
+      try{
+        var ghUser=localStorage.getItem('peludos_gh_user')||'hfhoyos';
+        var isLocal=window.location.href.indexOf('127.0.0.1')>=0||window.location.href.indexOf('localhost')>=0;
+        var baseUrl=isLocal?'https://'+ghUser+'.github.io/peludos/pet-public.html':window.location.origin+window.location.pathname.replace(/[^/]*$/,'')+'pet-public.html';
+        var url=baseUrl+'?id='+curPetId;
+        var tempDiv=document.createElement('div');
+        tempDiv.style.cssText='position:fixed;left:-9999px;top:-9999px;width:120px;height:120px';
+        document.body.appendChild(tempDiv);
+        new QRCode(tempDiv,{text:url,width:120,height:120,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+        setTimeout(function(){
+          var canvas=tempDiv.querySelector('canvas');
+          var img=tempDiv.querySelector('img');
+          document.body.removeChild(tempDiv);
+          if(canvas)resolve(canvas.toDataURL('image/png'));
+          else if(img)resolve(img.src);
+          else resolve(null);
+        },400);
+      }catch(e){resolve(null);}
+    });
+
+    /* Foto mascota como dataURL */
+    var petPhotoUrl=await new Promise(function(resolve){
+      if(!pet.photo_url){resolve(null);return;}
+      var img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=function(){
+        try{
+          var c=document.createElement('canvas');
+          c.width=img.width;c.height=img.height;
+          c.getContext('2d').drawImage(img,0,0);
+          resolve(c.toDataURL('image/jpeg',0.8));
+        }catch(e){resolve(null);}
+      };
+      img.onerror=function(){resolve(null);};
+      img.src=pet.photo_url;
+    });
+
+    /* Construir PDF */
+    var doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var W=210,margin=15,y=margin,lineH=6;
+
+    function setFont(size,style,color){
+      doc.setFontSize(size);
+      doc.setFont('helvetica',style||'normal');
+      doc.setTextColor(color||'#0d2b28');
+    }
+    function drawLine(){
+      doc.setDrawColor('#1a9e8f');
+      doc.setLineWidth(0.3);
+      doc.line(margin,y,W-margin,y);
+      y+=4;
+    }
+    function checkPage(needed){
+      if(y+needed>285){doc.addPage();y=margin;}
+    }
+
+    /* ── ENCABEZADO ── */
+    doc.setFillColor('#0d2b28');
+    doc.rect(0,0,W,40,'F');
+    doc.setTextColor('#40E0D0');
+    doc.setFontSize(22);doc.setFont('helvetica','bold');
+    doc.text('Peludos App',margin,15);
+    doc.setFontSize(11);doc.setFont('helvetica','normal');
+    doc.setTextColor('#e0faf8');
+    doc.text('Ficha de mascota — '+new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'}),margin,23);
+    y=48;
+
+    /* ── FOTO + DATOS BÁSICOS ── */
+    var fotoSize=35;
+    if(petPhotoUrl){
+      try{doc.addImage(petPhotoUrl,'JPEG',margin,y,fotoSize,fotoSize,undefined,'FAST');}catch(e){}
+    }else{
+      doc.setFillColor('#1a3d38');
+      doc.roundedRect(margin,y,fotoSize,fotoSize,3,3,'F');
+      doc.setFontSize(20);doc.text(pet.emoji||'🐾',margin+fotoSize/2,y+fotoSize/2+4,{align:'center'});
+    }
+    var xDatos=margin+fotoSize+8;
+    setFont(18,'bold','#0d2b28');
+    doc.text(pet.name,xDatos,y+8);
+    setFont(10,'normal','#1a9e8f');
+    var chips=[];
+    if(pet.species)chips.push(pet.species);
+    if(pet.breed)chips.push(pet.breed);
+    if(pet.birthdate)chips.push(calcAge(pet.birthdate));
+    if(pet.weight_kg)chips.push(pet.weight_kg+' kg');
+    doc.text(chips.join('  ·  '),xDatos,y+16);
+    if(pet.allergies){
+      setFont(9,'bold','#FF6B6B');
+      doc.text('⚠ ALERGIAS: '+pet.allergies,xDatos,y+24);
+    }
+    y+=fotoSize+8;
+    drawLine();
+
+    /* ── QR ── */
+    if(qrDataUrl){
+      checkPage(40);
+      setFont(11,'bold','#0d2b28');
+      doc.text('🔲  Código QR del collar',margin,y);y+=5;
+      try{doc.addImage(qrDataUrl,'PNG',margin,y,30,30);}catch(e){}
+      setFont(8,'normal','#555555');
+      doc.text('Escanea para ver la ficha pública de '+pet.name,margin+33,y+8);
+      doc.text('Total escaneos: '+QR_SCANS.length,margin+33,y+14);
+      y+=34;
+      drawLine();
+    }
+
+    /* ── HISTORIAL CRONOLÓGICO ── */
+    checkPage(20);
+    setFont(12,'bold','#0d2b28');
+    doc.text('📋  Historial de cuidado',margin,y);y+=7;
+
+    /* Construir items igual que el Historial en app */
+    var hItems=[];
+    var tabIconosPDF={higiene:'Higiene',ejercicio:'Ejercicio',entrenamiento:'Entrenamiento',preventiva:'Preventiva'};
+    VACCINES.forEach(function(v){hItems.push({fecha:v.applied_date,tipo:'💉 Vacuna',titulo:v.vaccine_name,sub:v.vet_name?'Vet: '+v.vet_name:''});});
+    RECORDS.forEach(function(r){hItems.push({fecha:r.record_date,tipo:(tabIconosPDF[r.record_type]||'Cuidado'),titulo:r.title,sub:r.notes?r.notes.substring(0,60):''});});
+    APPTS.filter(function(a){return a.completed;}).forEach(function(a){hItems.push({fecha:a.appointment_date,tipo:'Cita',titulo:a.title,sub:a.location?'📍 '+a.location:''});});
+    DIARY.forEach(function(e){hItems.push({fecha:e.entry_date?e.entry_date.split('T')[0]:e.created_at.split('T')[0],tipo:(e.mood||'📓')+' Diario',titulo:e.note?e.note.substring(0,80)+(e.note.length>80?'…':''):'Entrada de diario',sub:''});});
+    QR_SCANS.forEach(function(s){hItems.push({fecha:s.scanned_at?s.scanned_at.split('T')[0]:'',tipo:'🔲 QR',titulo:'Collar escaneado',sub:s.latitude?'GPS ±'+(s.accuracy?Math.round(s.accuracy)+'m':'?'):'sin ubicación'});});
+    hItems.sort(function(a,b){return b.fecha<a.fecha?-1:b.fecha>a.fecha?1:0;});
+
+    if(hItems.length===0){
+      setFont(10,'normal','#888888');
+      doc.text('Sin registros aún.',margin,y);y+=lineH;
+    }else{
+      var lastMes='';
+      hItems.forEach(function(item){
+        checkPage(14);
+        var mes=item.fecha?item.fecha.substring(0,7):'';
+        if(mes!==lastMes&&mes){
+          lastMes=mes;
+          var d=new Date(mes+'-01');
+          var label=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+          setFont(9,'bold','#1a9e8f');
+          doc.text(label.toUpperCase(),margin,y);y+=5;
+        }
+        /* Línea item */
+        setFont(8,'normal','#555555');
+        doc.text(item.fecha||'',margin,y);
+        setFont(8,'bold','#0d2b28');
+        doc.text('['+item.tipo+']',margin+20,y);
+        doc.text(item.titulo,margin+52,y,{maxWidth:W-margin-52-margin});
+        y+=lineH-1;
+        if(item.sub){
+          setFont(7,'normal','#888888');
+          doc.text(item.sub,margin+52,y,{maxWidth:W-margin-52-margin});
+          y+=4;
+        }
+        doc.setDrawColor('#dddddd');doc.setLineWidth(0.1);
+        doc.line(margin,y,W-margin,y);y+=2;
+      });
+    }
+    drawLine();
+
+    /* ── RED DE APOYO ── */
+    var sosList=SUPPORT.filter(function(c){return c.alert_sos;});
+    if(sosList.length>0){
+      checkPage(20);
+      setFont(12,'bold','#0d2b28');
+      doc.text('👥  Red de Apoyo — Contactos SOS',margin,y);y+=7;
+      sosList.forEach(function(c){
+        checkPage(10);
+        setFont(9,'bold','#0d2b28');
+        doc.text(c.name,margin,y);
+        setFont(9,'normal','#555555');
+        doc.text(c.phone,margin+50,y);
+        doc.text(c.role||'',margin+90,y);
+        y+=lineH;
+      });
+      drawLine();
+    }
+
+    /* ── PIE ── */
+    doc.setFontSize(8);doc.setTextColor('#aaaaaa');
+    doc.text('Generado por Peludos App · '+new Date().toLocaleString('es-CO'),margin,290);
+
+    /* Guardar */
+    doc.save('ficha-'+pet.name+'-'+new Date().toISOString().split('T')[0]+'.pdf');
+  };
 
   /* Actualizar badge al cargar mascotas */
   var _origLoadPets=window.loadPets;

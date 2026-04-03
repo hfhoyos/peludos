@@ -7,7 +7,7 @@
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  PELUDOS APP — ARQUITECTURA "COMPLEJO DE TORRES"                ║
-  ║  Versión: demo_17 — PDF mascota + QR/Diario en Historial        ║
+  ║  Versión: demo_18 — PDF con selector de contenido               ║
   ║                                                                  ║
   ║  CAMBIOS respecto a demo_10:                                     ║
   ║  1. 'Información del Familiar' contextual por torre              ║
@@ -123,6 +123,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 1.25rem}
 
 /* Botón X — esquina superior derecha de TODOS los modales */
+.pdf-check-row{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:4px;background:var(--glass);border:1px solid var(--border)}
+.pdf-check-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;min-width:160px;flex-shrink:0}
+.pdf-check-label input[type=checkbox]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer;flex-shrink:0}
+.pdf-check-sub{font-size:11px;color:var(--muted);padding-top:1px;line-height:1.4}
 .modal-close-btn{
   position:absolute;top:16px;right:16px;
   width:32px;height:32px;border-radius:50%;
@@ -548,7 +552,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔔</span><div class="settings-body"><div class="settings-label">Notificaciones</div></div><label class="toggle-wrap"><input type="checkbox" checked><div class="toggle-track"><div class="toggle-thumb"></div></div></label></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">👥</span><div class="settings-body"><div class="settings-label">Red de Apoyo</div><div class="settings-sub">Contactos · alertas WhatsApp</div></div><button class="settings-action" onclick="closeSettings();openRedApoyo()">Abrir</button></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🐾</span><div class="settings-body"><div class="settings-label">QR · Localización</div><div class="settings-sub">Collar QR · historial de escaneos · mapa</div></div><button class="settings-action" onclick="closeSettings();openQR()" style="position:relative">Abrir<span id="qr-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--coral);color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center"></span></button></div>
-    <div class="settings-row"><span class="settings-icon" aria-hidden="true">📄</span><div class="settings-body"><div class="settings-label">Ficha PDF</div><div class="settings-sub">Descarga la ficha completa de tu mascota</div></div><button class="settings-action" onclick="closeSettings();generarPDF()">Generar</button></div>
+    <div class="settings-row"><span class="settings-icon" aria-hidden="true">📄</span><div class="settings-body"><div class="settings-label">Ficha PDF</div><div class="settings-sub">Descarga la ficha completa de tu mascota</div></div><button class="settings-action" onclick="closeSettings();openPDFModal()">Generar</button></div>
     <!-- Inclusión reemplaza Backoffice (Cambio 5) -->
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">♿</span><div class="settings-body"><div class="settings-label">Inclusión</div><div class="settings-sub">Modos de accesibilidad</div></div><button class="settings-action" onclick="closeSettings();openModule('inclusion')">Abrir</button></div>
     <button class="btn-ghost" style="margin-top:1rem;border-color:rgba(255,107,107,.3);color:#ff9a9a" onclick="doLogout()">Cerrar sesión</button>
@@ -885,7 +889,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   window.doLogin=async function(){var email=document.getElementById('l-email').value.trim();var pass=document.getElementById('l-pass').value;clearMsg();if(!email||!pass){showMsg('Completa email y contraseña.','error');return;}setLoading('login',true);try{var r=await sb.auth.signInWithPassword({email,password:pass});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('login',false);return;}currentUser=r.data.user;setLoading('login',false);startLoadingAndGoHome('Cargando tus peludos...');}catch(e){showMsg('Error de conexión.','error');setLoading('login',false);}};
   window.doRegister=async function(){var name=document.getElementById('r-name').value.trim();var email=document.getElementById('r-email').value.trim();var pass=document.getElementById('r-pass').value;clearMsg();if(!name||!email||!pass){showMsg('Completa todos los campos.','error');return;}if(pass.length<6){showMsg('Mínimo 6 caracteres.','error');return;}setLoading('register',true);try{var r=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('register',false);return;}if(r.data.user&&!r.data.session){showMsg('✅ Revisa tu email para confirmar.','success');setLoading('register',false);setTimeout(function(){switchTab('login');},2000);return;}if(r.data.session){currentUser=r.data.user;setLoading('register',false);startLoadingAndGoHome('Preparando tu cuenta...');}}catch(e){showMsg('Error de conexión.','error');setLoading('register',false);}};
   window.showForgotPassword=async function(){var email=document.getElementById('l-email').value.trim();if(!email){showMsg('Escribe tu email arriba primero.','error');return;}try{var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});if(r.error)showMsg(translateAuthError(r.error.message),'error');else showMsg('✅ Revisa tu email.','success');}catch(e){showMsg('Error de conexión.','error');}};
-  window.doLogout=async function(){['modal-settings','modal-red-apoyo','modal-contacto-form','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-care-form','modal-appt-form','modal-qr'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];SUPPORT=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
+  window.doLogout=async function(){['modal-settings','modal-red-apoyo','modal-contacto-form','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-care-form','modal-appt-form','modal-qr','modal-pdf'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];SUPPORT=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
 
 
   /* ──────────────────────────────────────────────────────────────
@@ -1022,7 +1026,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       '<div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap">'+
         '<button class="care-fab" style="margin-bottom:0" onclick="closeModule();setTimeout(function(){openModule(\'agenda\');setTimeout(function(){openApptForm();},100);},100)">📅 Sacar cita</button>'+
         '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--teal-l);box-shadow:none;border:1.5px solid var(--border)" onclick="openCareForm(\'higiene\')">➕ Registro manual</button>'+
-        '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--coral);box-shadow:none;border:1.5px solid var(--border)" onclick="generarPDF()">📄 Ficha PDF</button>'+
+        '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--coral);box-shadow:none;border:1.5px solid var(--border)" onclick="openPDFModal()">📄 Ficha PDF</button>'+
       '</div>';
 
     /* ── Construir línea de tiempo unificada ── */
@@ -1896,17 +1900,84 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     },100);
   }
 
+  /* ─── MODAL PDF ─── */
+  window.openPDFModal=async function(){
+    if(!curPetId){alert('Selecciona una mascota primero.');return;}
+    if(QR_SCANS.length===0)await loadQRScans(curPetId);
+    document.getElementById('pdf-modal-msg').textContent='';
+    document.getElementById('modal-pdf').classList.remove('hidden');
+  };
+
+  window.closePDFModal=function(e){
+    if(!e||e.target===document.getElementById('modal-pdf'))
+      document.getElementById('modal-pdf').classList.add('hidden');
+  };
+
+  window.pdfToggleAll=function(checked){
+    document.querySelectorAll('.pdf-cb').forEach(function(cb){cb.checked=checked;});
+    var btn=document.getElementById('pdf-hist-toggle-btn');
+    if(btn)btn.textContent=checked?'Desmarcar todos':'Marcar todos';
+  };
+
+  window.pdfSyncToggleAll=function(){
+    var all=document.querySelectorAll('.pdf-cb');
+    var allChecked=Array.from(all).every(function(cb){return cb.checked;});
+    var ta=document.getElementById('pdf-toggle-all');
+    if(ta)ta.checked=allChecked;
+  };
+
+  window.pdfToggleHistorial=function(){
+    var hcbs=document.querySelectorAll('.pdf-cb-hist');
+    var anyChecked=Array.from(hcbs).some(function(cb){return cb.checked;});
+    hcbs.forEach(function(cb){cb.checked=!anyChecked;});
+    var btn=document.getElementById('pdf-hist-toggle-btn');
+    if(btn)btn.textContent=anyChecked?'Marcar todos':'Desmarcar todos';
+    pdfSyncToggleAll();
+  };
+
+  window.pdfSyncHistorial=function(){
+    var hcbs=document.querySelectorAll('.pdf-cb-hist');
+    var anyChecked=Array.from(hcbs).some(function(cb){return cb.checked;});
+    var btn=document.getElementById('pdf-hist-toggle-btn');
+    if(btn)btn.textContent=anyChecked?'Desmarcar todos':'Marcar todos';
+    pdfSyncToggleAll();
+  };
+
+  function cbVal(id){var el=document.getElementById(id);return el?el.checked:false;}
+
+  window.generarPDFDesdeModal=function(){
+    var sel={
+      basicos:   cbVal('pdf-cb-basicos'),
+      qr:        cbVal('pdf-cb-qr'),
+      vacunasProx: cbVal('pdf-cb-vacunas-prox'),
+      red:       cbVal('pdf-cb-red'),
+      histVacunas: cbVal('pdf-cb-hist-vacunas'),
+      histCuidado: cbVal('pdf-cb-hist-cuidado'),
+      histAgenda:  cbVal('pdf-cb-hist-agenda'),
+      histDiario:  cbVal('pdf-cb-hist-diario'),
+      histQr:      cbVal('pdf-cb-hist-qr'),
+    };
+    var ninguno=!Object.values(sel).some(Boolean);
+    if(ninguno){
+      document.getElementById('pdf-modal-msg').textContent='Selecciona al menos una sección.';
+      return;
+    }
+    document.getElementById('modal-pdf').classList.add('hidden');
+    generarPDF(sel);
+  };
+
   /* ─── MÓDULO PDF ─── */
-  window.generarPDF=async function(){
+  window.generarPDF=async function(sel){
+    /* sel puede venir undefined si se llama directo — activar todo */
+    if(!sel)sel={basicos:true,qr:true,vacunasProx:true,red:true,histVacunas:true,histCuidado:true,histAgenda:true,histDiario:true,histQr:true};
     if(!curPetId){alert('Selecciona una mascota primero.');return;}
     var pet=getPetById(curPetId);
     if(!pet){alert('Mascota no encontrada.');return;}
-
-    /* Asegurar QR scans cargados */
     if(QR_SCANS.length===0)await loadQRScans(curPetId);
 
     /* Generar QR como dataURL */
     var qrDataUrl=await new Promise(function(resolve){
+      if(!sel.qr){resolve(null);return;}
       try{
         var ghUser=localStorage.getItem('peludos_gh_user')||'hfhoyos';
         var isLocal=window.location.href.indexOf('127.0.0.1')>=0||window.location.href.indexOf('localhost')>=0;
@@ -1929,7 +2000,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 
     /* Foto mascota como dataURL */
     var petPhotoUrl=await new Promise(function(resolve){
-      if(!pet.photo_url){resolve(null);return;}
+      if(!sel.basicos||!pet.photo_url){resolve(null);return;}
       var img=new Image();
       img.crossOrigin='anonymous';
       img.onload=function(){
@@ -1944,146 +2015,138 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       img.src=pet.photo_url;
     });
 
-    /* Construir PDF */
     var doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     var W=210,margin=15,y=margin,lineH=6;
 
     function setFont(size,style,color){
-      doc.setFontSize(size);
-      doc.setFont('helvetica',style||'normal');
-      doc.setTextColor(color||'#0d2b28');
+      doc.setFontSize(size);doc.setFont('helvetica',style||'normal');doc.setTextColor(color||'#0d2b28');
     }
     function drawLine(){
-      doc.setDrawColor('#1a9e8f');
-      doc.setLineWidth(0.3);
-      doc.line(margin,y,W-margin,y);
-      y+=4;
+      doc.setDrawColor('#1a9e8f');doc.setLineWidth(0.3);doc.line(margin,y,W-margin,y);y+=4;
     }
-    function checkPage(needed){
-      if(y+needed>285){doc.addPage();y=margin;}
-    }
+    function checkPage(needed){if(y+needed>285){doc.addPage();y=margin;}}
 
-    /* ── ENCABEZADO ── */
+    /* ENCABEZADO */
     doc.setFillColor('#0d2b28');
     doc.rect(0,0,W,40,'F');
-    doc.setTextColor('#40E0D0');
-    doc.setFontSize(22);doc.setFont('helvetica','bold');
+    doc.setTextColor('#40E0D0');doc.setFontSize(22);doc.setFont('helvetica','bold');
     doc.text('Peludos App',margin,15);
-    doc.setFontSize(11);doc.setFont('helvetica','normal');
-    doc.setTextColor('#e0faf8');
+    doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor('#e0faf8');
     doc.text('Ficha de mascota — '+new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'}),margin,23);
     y=48;
 
-    /* ── FOTO + DATOS BÁSICOS ── */
-    var fotoSize=35;
-    if(petPhotoUrl){
-      try{doc.addImage(petPhotoUrl,'JPEG',margin,y,fotoSize,fotoSize,undefined,'FAST');}catch(e){}
-    }else{
-      doc.setFillColor('#1a3d38');
-      doc.roundedRect(margin,y,fotoSize,fotoSize,3,3,'F');
-      doc.setFontSize(20);doc.text(pet.emoji||'🐾',margin+fotoSize/2,y+fotoSize/2+4,{align:'center'});
+    /* DATOS BÁSICOS */
+    if(sel.basicos){
+      var fotoSize=35;
+      if(petPhotoUrl){
+        try{doc.addImage(petPhotoUrl,'JPEG',margin,y,fotoSize,fotoSize,undefined,'FAST');}catch(e){}
+      }else{
+        doc.setFillColor('#1a3d38');doc.roundedRect(margin,y,fotoSize,fotoSize,3,3,'F');
+        doc.setFontSize(20);doc.text(pet.emoji||'🐾',margin+fotoSize/2,y+fotoSize/2+4,{align:'center'});
+      }
+      var xDatos=margin+fotoSize+8;
+      setFont(18,'bold','#0d2b28');doc.text(pet.name,xDatos,y+8);
+      setFont(10,'normal','#1a9e8f');
+      var chips=[];
+      if(pet.species)chips.push(pet.species);
+      if(pet.breed)chips.push(pet.breed);
+      if(pet.birthdate)chips.push(calcAge(pet.birthdate));
+      if(pet.weight_kg)chips.push(pet.weight_kg+' kg');
+      doc.text(chips.join('  ·  '),xDatos,y+16);
+      if(pet.allergies){setFont(9,'bold','#FF6B6B');doc.text('⚠ ALERGIAS: '+pet.allergies,xDatos,y+24);}
+      y+=fotoSize+8;drawLine();
     }
-    var xDatos=margin+fotoSize+8;
-    setFont(18,'bold','#0d2b28');
-    doc.text(pet.name,xDatos,y+8);
-    setFont(10,'normal','#1a9e8f');
-    var chips=[];
-    if(pet.species)chips.push(pet.species);
-    if(pet.breed)chips.push(pet.breed);
-    if(pet.birthdate)chips.push(calcAge(pet.birthdate));
-    if(pet.weight_kg)chips.push(pet.weight_kg+' kg');
-    doc.text(chips.join('  ·  '),xDatos,y+16);
-    if(pet.allergies){
-      setFont(9,'bold','#FF6B6B');
-      doc.text('⚠ ALERGIAS: '+pet.allergies,xDatos,y+24);
-    }
-    y+=fotoSize+8;
-    drawLine();
 
-    /* ── QR ── */
-    if(qrDataUrl){
+    /* QR */
+    if(sel.qr&&qrDataUrl){
       checkPage(40);
-      setFont(11,'bold','#0d2b28');
-      doc.text('🔲  Código QR del collar',margin,y);y+=5;
+      setFont(11,'bold','#0d2b28');doc.text('Codigo QR del collar',margin,y);y+=5;
       try{doc.addImage(qrDataUrl,'PNG',margin,y,30,30);}catch(e){}
       setFont(8,'normal','#555555');
-      doc.text('Escanea para ver la ficha pública de '+pet.name,margin+33,y+8);
+      doc.text('Escanea para ver la ficha publica de '+(pet.name||'la mascota'),margin+33,y+8);
       doc.text('Total escaneos: '+QR_SCANS.length,margin+33,y+14);
-      y+=34;
-      drawLine();
+      y+=34;drawLine();
     }
 
-    /* ── HISTORIAL CRONOLÓGICO ── */
-    checkPage(20);
-    setFont(12,'bold','#0d2b28');
-    doc.text('📋  Historial de cuidado',margin,y);y+=7;
-
-    /* Construir items igual que el Historial en app */
-    var hItems=[];
-    var tabIconosPDF={higiene:'Higiene',ejercicio:'Ejercicio',entrenamiento:'Entrenamiento',preventiva:'Preventiva'};
-    VACCINES.forEach(function(v){hItems.push({fecha:v.applied_date,tipo:'💉 Vacuna',titulo:v.vaccine_name,sub:v.vet_name?'Vet: '+v.vet_name:''});});
-    RECORDS.forEach(function(r){hItems.push({fecha:r.record_date,tipo:(tabIconosPDF[r.record_type]||'Cuidado'),titulo:r.title,sub:r.notes?r.notes.substring(0,60):''});});
-    APPTS.filter(function(a){return a.completed;}).forEach(function(a){hItems.push({fecha:a.appointment_date,tipo:'Cita',titulo:a.title,sub:a.location?'📍 '+a.location:''});});
-    DIARY.forEach(function(e){hItems.push({fecha:e.entry_date?e.entry_date.split('T')[0]:e.created_at.split('T')[0],tipo:(e.mood||'📓')+' Diario',titulo:e.note?e.note.substring(0,80)+(e.note.length>80?'…':''):'Entrada de diario',sub:''});});
-    QR_SCANS.forEach(function(s){hItems.push({fecha:s.scanned_at?s.scanned_at.split('T')[0]:'',tipo:'🔲 QR',titulo:'Collar escaneado',sub:s.latitude?'GPS ±'+(s.accuracy?Math.round(s.accuracy)+'m':'?'):'sin ubicación'});});
-    hItems.sort(function(a,b){return b.fecha<a.fecha?-1:b.fecha>a.fecha?1:0;});
-
-    if(hItems.length===0){
-      setFont(10,'normal','#888888');
-      doc.text('Sin registros aún.',margin,y);y+=lineH;
-    }else{
-      var lastMes='';
-      hItems.forEach(function(item){
-        checkPage(14);
-        var mes=item.fecha?item.fecha.substring(0,7):'';
-        if(mes!==lastMes&&mes){
-          lastMes=mes;
-          var d=new Date(mes+'-01');
-          var label=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
-          setFont(9,'bold','#1a9e8f');
-          doc.text(label.toUpperCase(),margin,y);y+=5;
-        }
-        /* Línea item */
-        setFont(8,'normal','#555555');
-        doc.text(item.fecha||'',margin,y);
-        setFont(8,'bold','#0d2b28');
-        doc.text('['+item.tipo+']',margin+20,y);
-        doc.text(item.titulo,margin+52,y,{maxWidth:W-margin-52-margin});
-        y+=lineH-1;
-        if(item.sub){
-          setFont(7,'normal','#888888');
-          doc.text(item.sub,margin+52,y,{maxWidth:W-margin-52-margin});
-          y+=4;
-        }
-        doc.setDrawColor('#dddddd');doc.setLineWidth(0.1);
-        doc.line(margin,y,W-margin,y);y+=2;
-      });
-    }
-    drawLine();
-
-    /* ── RED DE APOYO ── */
-    var sosList=SUPPORT.filter(function(c){return c.alert_sos;});
-    if(sosList.length>0){
+    /* PRÓXIMAS VACUNAS */
+    if(sel.vacunasProx&&VACCINES.length>0){
       checkPage(20);
-      setFont(12,'bold','#0d2b28');
-      doc.text('👥  Red de Apoyo — Contactos SOS',margin,y);y+=7;
-      sosList.forEach(function(c){
-        checkPage(10);
-        setFont(9,'bold','#0d2b28');
-        doc.text(c.name,margin,y);
-        setFont(9,'normal','#555555');
-        doc.text(c.phone,margin+50,y);
-        doc.text(c.role||'',margin+90,y);
-        y+=lineH;
-      });
+      setFont(11,'bold','#0d2b28');doc.text('Proximas vacunas',margin,y);y+=6;
+      var proximas=VACCINES.filter(function(v){return v.next_date;})
+        .sort(function(a,b){return a.next_date<b.next_date?-1:1;}).slice(0,3);
+      if(proximas.length===0){
+        setFont(9,'normal','#888888');doc.text('Sin vacunas con fecha de refuerzo.',margin,y);y+=6;
+      }else{
+        proximas.forEach(function(v){
+          checkPage(8);
+          setFont(8,'bold','#0d2b28');doc.text(v.vaccine_name,margin,y);
+          setFont(8,'normal','#555555');
+          var dias=daysUntil(v.next_date);
+          var label=dias===null?'':dias<0?'Vencida hace '+Math.abs(dias)+'d':'Refuerzo en '+dias+'d';
+          doc.text('Refuerzo: '+v.next_date+(label?' ('+label+')':''),margin+55,y);
+          y+=lineH;
+        });
+      }
       drawLine();
     }
 
-    /* ── PIE ── */
+    /* RED DE APOYO */
+    if(sel.red){
+      var sosList=SUPPORT.filter(function(c){return c.alert_sos;});
+      if(sosList.length>0){
+        checkPage(20);
+        setFont(11,'bold','#0d2b28');doc.text('Red de Apoyo — Contactos SOS',margin,y);y+=6;
+        sosList.forEach(function(c){
+          checkPage(8);
+          setFont(8,'bold','#0d2b28');doc.text(c.name,margin,y);
+          setFont(8,'normal','#555555');doc.text(c.phone,margin+55,y);doc.text(c.role||'',margin+95,y);
+          y+=lineH;
+        });
+        drawLine();
+      }
+    }
+
+    /* HISTORIAL CRONOLÓGICO */
+    var hayHist=sel.histVacunas||sel.histCuidado||sel.histAgenda||sel.histDiario||sel.histQr;
+    if(hayHist){
+      checkPage(20);
+      setFont(12,'bold','#0d2b28');doc.text('Historial de cuidado',margin,y);y+=7;
+      var tabIconosPDF={higiene:'Higiene',ejercicio:'Ejercicio',entrenamiento:'Entrenamiento',preventiva:'Preventiva'};
+      var hItems=[];
+      if(sel.histVacunas)VACCINES.forEach(function(v){hItems.push({fecha:v.applied_date,tipo:'Vacuna',titulo:v.vaccine_name,sub:v.vet_name?'Vet: '+v.vet_name:''});});
+      if(sel.histCuidado)RECORDS.forEach(function(r){hItems.push({fecha:r.record_date,tipo:tabIconosPDF[r.record_type]||'Cuidado',titulo:r.title,sub:r.notes?r.notes.substring(0,60):''});});
+      if(sel.histAgenda)APPTS.filter(function(a){return a.completed;}).forEach(function(a){hItems.push({fecha:a.appointment_date,tipo:'Cita',titulo:a.title,sub:a.location?a.location:''});});
+      if(sel.histDiario)DIARY.forEach(function(e){hItems.push({fecha:e.entry_date?e.entry_date.split('T')[0]:e.created_at.split('T')[0],tipo:'Diario',titulo:e.note?e.note.substring(0,80)+(e.note.length>80?'...':''):'Entrada de diario',sub:''});});
+      if(sel.histQr)QR_SCANS.forEach(function(s){hItems.push({fecha:s.scanned_at?s.scanned_at.split('T')[0]:'',tipo:'QR',titulo:'Collar escaneado',sub:s.latitude?'GPS +-'+(s.accuracy?Math.round(s.accuracy)+'m':'?'):'sin ubicacion'});});
+      hItems.sort(function(a,b){return b.fecha<a.fecha?-1:b.fecha>a.fecha?1:0;});
+
+      if(hItems.length===0){
+        setFont(10,'normal','#888888');doc.text('Sin registros para las categorias seleccionadas.',margin,y);y+=lineH;
+      }else{
+        var lastMes='';
+        hItems.forEach(function(item){
+          checkPage(14);
+          var mes=item.fecha?item.fecha.substring(0,7):'';
+          if(mes!==lastMes&&mes){
+            lastMes=mes;
+            var d=new Date(mes+'-01');
+            var label=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'}).toUpperCase();
+            setFont(9,'bold','#1a9e8f');doc.text(label,margin,y);y+=5;
+          }
+          setFont(8,'normal','#555555');doc.text(item.fecha||'',margin,y);
+          setFont(8,'bold','#0d2b28');doc.text('['+item.tipo+']',margin+20,y);
+          doc.text(item.titulo,margin+52,y,{maxWidth:W-margin-52-margin});
+          y+=lineH-1;
+          if(item.sub){setFont(7,'normal','#888888');doc.text(item.sub,margin+52,y,{maxWidth:W-margin-52-margin});y+=4;}
+          doc.setDrawColor('#dddddd');doc.setLineWidth(0.1);doc.line(margin,y,W-margin,y);y+=2;
+        });
+      }
+      drawLine();
+    }
+
+    /* PIE */
     doc.setFontSize(8);doc.setTextColor('#aaaaaa');
     doc.text('Generado por Peludos App · '+new Date().toLocaleString('es-CO'),margin,290);
-
-    /* Guardar */
     doc.save('ficha-'+pet.name+'-'+new Date().toISOString().split('T')[0]+'.pdf');
   };
 
@@ -2135,6 +2198,49 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     <div id="qr-tab-mapa" style="display:none">
       <div style="font-size:12px;color:var(--sub);margin-bottom:10px">Ubicaciones de escaneos con GPS compartido.</div>
       <div id="qr-mapa-wrap"></div>
+    </div>
+  </div>
+</div>
+<!-- MODAL PDF SELECTOR -->
+<div class="modal-overlay hidden" id="modal-pdf" onclick="closePDFModal(event)" role="dialog" aria-modal="true" aria-label="Configurar PDF">
+  <div class="modal-sheet" style="max-height:90vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="closePDFModal()" aria-label="Cerrar">✕</button>
+    <div class="modal-title">📄 Configurar Ficha PDF</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:1rem">Selecciona qué secciones incluir en el PDF.</div>
+
+    <!-- Toggle all -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:10px 14px;background:var(--glass);border-radius:12px;border:1.5px solid var(--border2)">
+      <span style="font-size:13px;font-weight:800;color:var(--teal-l)">Seleccionar todo</span>
+      <label class="toggle-wrap"><input type="checkbox" id="pdf-toggle-all" checked onchange="pdfToggleAll(this.checked)"><div class="toggle-track"><div class="toggle-thumb"></div></div></label>
+    </div>
+
+    <!-- Sección: Datos básicos -->
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Ficha principal</div>
+      <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb" id="pdf-cb-basicos" checked onchange="pdfSyncToggleAll()"><span>🐾 Datos básicos</span></label><span class="pdf-check-sub">Foto · nombre · especie · raza · edad · peso · alergias</span></div>
+      <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb" id="pdf-cb-qr" checked onchange="pdfSyncToggleAll()"><span>🔲 QR del collar</span></label><span class="pdf-check-sub">Imagen QR + URL + total escaneos</span></div>
+      <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb" id="pdf-cb-vacunas-prox" checked onchange="pdfSyncToggleAll()"><span>💉 Próximas vacunas</span></label><span class="pdf-check-sub">Las 3 vacunas más próximas por vencer</span></div>
+      <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb" id="pdf-cb-red" checked onchange="pdfSyncToggleAll()"><span>👥 Red de Apoyo SOS</span></label><span class="pdf-check-sub">Contactos con alerta SOS activada</span></div>
+    </div>
+
+    <!-- Sección: Historial -->
+    <div style="margin-top:1rem;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">📋 Historial cronológico</div>
+        <button onclick="pdfToggleHistorial()" id="pdf-hist-toggle-btn" style="font-size:11px;color:var(--teal-l);background:none;border:none;cursor:pointer;font-weight:700">Desmarcar todos</button>
+      </div>
+      <div id="pdf-hist-rows">
+        <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb pdf-cb-hist" id="pdf-cb-hist-vacunas" checked onchange="pdfSyncHistorial()"><span>💉 Vacunas</span></label><span class="pdf-check-sub">Todas las vacunas registradas</span></div>
+        <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb pdf-cb-hist" id="pdf-cb-hist-cuidado" checked onchange="pdfSyncHistorial()"><span>🧼 Cuidado</span></label><span class="pdf-check-sub">Higiene · ejercicio · entrenamiento</span></div>
+        <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb pdf-cb-hist" id="pdf-cb-hist-agenda" checked onchange="pdfSyncHistorial()"><span>📅 Agenda</span></label><span class="pdf-check-sub">Citas completadas</span></div>
+        <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb pdf-cb-hist" id="pdf-cb-hist-diario" checked onchange="pdfSyncHistorial()"><span>📓 Diario</span></label><span class="pdf-check-sub">Entradas con estado de ánimo</span></div>
+        <div class="pdf-check-row"><label class="pdf-check-label"><input type="checkbox" class="pdf-cb pdf-cb-hist" id="pdf-cb-hist-qr" checked onchange="pdfSyncHistorial()"><span>🔲 Escaneos QR</span></label><span class="pdf-check-sub">Eventos de escaneo del collar</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem">
+      <button class="btn-primary" id="pdf-gen-btn" onclick="generarPDFDesdeModal()" style="width:100%;font-size:15px;padding:14px">📄 Generar PDF</button>
+      <div id="pdf-modal-msg" style="text-align:center;font-size:13px;margin-top:10px;min-height:20px"></div>
     </div>
   </div>
 </div>

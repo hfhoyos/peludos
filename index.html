@@ -7,7 +7,7 @@
 <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  PELUDOS APP — ARQUITECTURA "COMPLEJO DE TORRES"                ║
-  ║  Versión: demo_11 — Rediseño UX completo                        ║
+  ║  Versión: demo_16 — SMS en Red de Apoyo + Módulo QR completo    ║
   ║                                                                  ║
   ║  CAMBIOS respecto a demo_10:                                     ║
   ║  1. 'Información del Familiar' contextual por torre              ║
@@ -39,6 +39,9 @@
   ╚══════════════════════════════════════════════════════════════════╝
 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -246,6 +249,9 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
 .cb-ejercicio{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
 .cb-entrenamiento{background:rgba(132,204,22,.15);color:#bef264;border:1px solid rgba(132,204,22,.25)}
 .cb-otro{background:var(--glass2);color:var(--muted);border:1px solid var(--border)}
+.cb-preventiva{background:rgba(64,224,208,.15);color:var(--teal-l);border:1px solid rgba(64,224,208,.25)}
+.cb-higiene{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+.cb-agenda{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.25)}
 /* Estado vacío */
 .care-empty{text-align:center;padding:2rem 1rem}
 .care-empty-icon{font-size:40px;display:block;margin-bottom:10px;opacity:.6}
@@ -539,9 +545,59 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🏷</span><div class="settings-body"><div class="settings-label">Nombre de la app</div></div><input class="app-name-input" id="app-name-input" value="Peludos App" oninput="updateAppName(this.value)"></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🎨</span><div class="settings-body"><div class="settings-label">Tema visual</div><div class="theme-swatches"><div class="swatch active" style="background:radial-gradient(circle,#40E0D0,#FF6B6B)" onclick="setTheme('mascotas',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#f472b6,#fbbf24)" onclick="setTheme('calido',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#22d3ee,#a855f7)" onclick="setTheme('dark',this)" role="button" tabindex="0"></div><div class="swatch" style="background:radial-gradient(circle,#0D47A1,#FFD700)" onclick="setTheme('fintech',this)" role="button" tabindex="0"></div></div></div></div>
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">🔔</span><div class="settings-body"><div class="settings-label">Notificaciones</div></div><label class="toggle-wrap"><input type="checkbox" checked><div class="toggle-track"><div class="toggle-thumb"></div></div></label></div>
+    <div class="settings-row"><span class="settings-icon" aria-hidden="true">👥</span><div class="settings-body"><div class="settings-label">Red de Apoyo</div><div class="settings-sub">Contactos · alertas WhatsApp</div></div><button class="settings-action" onclick="closeSettings();openRedApoyo()">Abrir</button></div>
+    <div class="settings-row"><span class="settings-icon" aria-hidden="true">🐾</span><div class="settings-body"><div class="settings-label">QR · Localización</div><div class="settings-sub">Collar QR · historial de escaneos · mapa</div></div><button class="settings-action" onclick="closeSettings();openQR()" style="position:relative">Abrir<span id="qr-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--coral);color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center"></span></button></div>
     <!-- Inclusión reemplaza Backoffice (Cambio 5) -->
     <div class="settings-row"><span class="settings-icon" aria-hidden="true">♿</span><div class="settings-body"><div class="settings-label">Inclusión</div><div class="settings-sub">Modos de accesibilidad</div></div><button class="settings-action" onclick="closeSettings();openModule('inclusion')">Abrir</button></div>
     <button class="btn-ghost" style="margin-top:1rem;border-color:rgba(255,107,107,.3);color:#ff9a9a" onclick="doLogout()">Cerrar sesión</button>
+  </div>
+</div>
+
+
+<!-- RED DE APOYO -->
+<div class="modal-overlay hidden" id="modal-red-apoyo" onclick="closeRedApoyo(event)" role="dialog" aria-modal="true" aria-label="Red de Apoyo">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeRedApoyo()" aria-label="Cerrar">✕</button>
+    <div class="modal-title">👥 Red de Apoyo</div>
+    <div class="auth-msg" id="red-apoyo-msg" role="alert" aria-live="polite"></div>
+    <div class="care-tabs" style="margin-bottom:1rem">
+      <button class="care-tab active" id="tab-btn-contactos" onclick="switchRedApoyoTab('contactos')">👤 Contactos</button>
+      <button class="care-tab" id="tab-btn-mensajes" onclick="switchRedApoyoTab('mensajes')">💬 Mensajes</button>
+    </div>
+    <div id="red-apoyo-content"></div>
+  </div>
+</div>
+
+<!-- FORMULARIO CONTACTO -->
+<div class="modal-overlay hidden" id="modal-contacto-form" onclick="closeContactoForm(event)" role="dialog" aria-modal="true" aria-label="Contacto">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <button class="modal-close-btn" onclick="closeContactoForm()" aria-label="Cerrar">✕</button>
+    <div class="modal-title" id="contacto-form-title">Nuevo contacto</div>
+    <div class="auth-msg" id="contacto-form-msg" role="alert" aria-live="polite"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="c-name">Nombre</label><input class="pet-form-input" id="c-name" type="text" placeholder="Nombre del contacto"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="c-phone">WhatsApp (solo números con código país)</label><input class="pet-form-input" id="c-phone" type="tel" placeholder="573001234567"></div>
+    <div class="pet-form-group"><label class="pet-form-label" for="c-role">Tipo</label>
+      <select class="pet-form-select" id="c-role">
+        <option value="familiar">👨‍👩‍👧 Familiar</option>
+        <option value="cuidador">🏠 Cuidador</option>
+        <option value="paseador">🐕 Paseador</option>
+        <option value="veterinario">🩺 Veterinario</option>
+        <option value="otro">👤 Otro</option>
+      </select>
+    </div>
+    <div class="pet-form-group"><label class="pet-form-label">Alertas autorizadas</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-alert-citas" style="width:16px;height:16px;accent-color:var(--teal)"> 📅 Alertas de Citas</label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-alert-cuidado" style="width:16px;height:16px;accent-color:var(--teal)"> 🏥 Alertas de Cuidado</label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-alert-nutricion" style="width:16px;height:16px;accent-color:var(--teal)"> 🥗 Alertas de Nutrición</label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="c-alert-sos" style="width:16px;height:16px;accent-color:var(--teal-l)"> 🆘 Emergencia SOS</label>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-save-contacto" onclick="saveContacto()"><div class="btn-spinner" id="spinner-contacto" aria-hidden="true"></div><span id="btn-save-contacto-text">Guardar contacto</span></button>
+    <button class="btn-danger" id="btn-delete-contacto" onclick="deleteContacto()" style="display:none">Eliminar contacto</button>
+    <button class="btn-ghost" onclick="closeContactoForm()">Cancelar</button>
   </div>
 </div>
 
@@ -827,7 +883,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   window.doLogin=async function(){var email=document.getElementById('l-email').value.trim();var pass=document.getElementById('l-pass').value;clearMsg();if(!email||!pass){showMsg('Completa email y contraseña.','error');return;}setLoading('login',true);try{var r=await sb.auth.signInWithPassword({email,password:pass});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('login',false);return;}currentUser=r.data.user;setLoading('login',false);startLoadingAndGoHome('Cargando tus peludos...');}catch(e){showMsg('Error de conexión.','error');setLoading('login',false);}};
   window.doRegister=async function(){var name=document.getElementById('r-name').value.trim();var email=document.getElementById('r-email').value.trim();var pass=document.getElementById('r-pass').value;clearMsg();if(!name||!email||!pass){showMsg('Completa todos los campos.','error');return;}if(pass.length<6){showMsg('Mínimo 6 caracteres.','error');return;}setLoading('register',true);try{var r=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});if(r.error){showMsg(translateAuthError(r.error.message),'error');setLoading('register',false);return;}if(r.data.user&&!r.data.session){showMsg('✅ Revisa tu email para confirmar.','success');setLoading('register',false);setTimeout(function(){switchTab('login');},2000);return;}if(r.data.session){currentUser=r.data.user;setLoading('register',false);startLoadingAndGoHome('Preparando tu cuenta...');}}catch(e){showMsg('Error de conexión.','error');setLoading('register',false);}};
   window.showForgotPassword=async function(){var email=document.getElementById('l-email').value.trim();if(!email){showMsg('Escribe tu email arriba primero.','error');return;}try{var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});if(r.error)showMsg(translateAuthError(r.error.message),'error');else showMsg('✅ Revisa tu email.','success');}catch(e){showMsg('Error de conexión.','error');}};
-  window.doLogout=async function(){['modal-settings','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-care-form','modal-appt-form'].forEach(function(id){document.getElementById(id).classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
+  window.doLogout=async function(){['modal-settings','modal-red-apoyo','modal-contacto-form','modal-module','modal-pet-form','modal-diary-form','modal-vaccine-form','modal-care-form','modal-appt-form','modal-qr'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.add('hidden');});try{await sb.auth.signOut();}catch(e){}currentUser=null;PETS=[];DIARY=[];VACCINES=[];RECORDS=[];APPTS=[];SUPPORT=[];IA_MESSAGES=[];curPetId=null;showScreen('screen-login');clearMsg();};
 
 
   /* ──────────────────────────────────────────────────────────────
@@ -956,74 +1012,119 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     var pet=getPetById(curPetId);
     if(!pet){document.getElementById('modal-module-content').innerHTML='<div style="text-align:center;padding:2rem">Selecciona una mascota primero.</div>';return;}
 
-    /* Tarjeta Familiar: alergias + rasgos + conducta (Cambio 1) */
+    /* Tarjeta Familiar */
     var familiarCard=buildFamiliarCard(pet,['alergias','rasgos','conducta']);
 
-    var html=familiarCard+
-      '<div class="care-tabs">'+
-        '<button class="care-tab'+(careTab==='preventiva'?' active':'')+'\" onclick="switchCareTab(\'preventiva\')">🛡 Preventiva</button>'+
-        '<button class="care-tab'+(careTab==='higiene'?' active':'')+'\" onclick="switchCareTab(\'higiene\')">🧼 Higiene</button>'+
-        '<button class="care-tab'+(careTab==='ejercicio'?' active':'')+'\" onclick="switchCareTab(\'ejercicio\')">🏃 Ejercicio</button>'+
-        '<button class="care-tab'+(careTab==='entrenamiento'?' active':'')+'\" onclick="switchCareTab(\'entrenamiento\')">🎓 Entrenamiento</button>'+
+    /* ── Botones acción ── */
+    var acciones=
+      '<div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap">'+
+        '<button class="care-fab" style="margin-bottom:0" onclick="closeModule();setTimeout(function(){openModule(\'agenda\');setTimeout(function(){openApptForm();},100);},100)">📅 Sacar cita</button>'+
+        '<button class="care-fab" style="margin-bottom:0;background:var(--glass2);color:var(--teal-l);box-shadow:none;border:1.5px solid var(--border)" onclick="openCareForm(\'higiene\')">➕ Registro manual</button>'+
       '</div>';
 
-    if(careTab==='preventiva'){
-      html+=renderPreventivaTab(pet);
+    /* ── Construir línea de tiempo unificada ── */
+    var items=[];
+
+    /* Vacunas */
+    VACCINES.forEach(function(v){
+      items.push({
+        fecha: v.applied_date,
+        icono: '💉',
+        titulo: escapeHtml(v.vaccine_name),
+        badge: '🛡 Preventiva',
+        badgeCss: 'cb-preventiva',
+        sub: v.vet_name?'👨‍⚕️ '+escapeHtml(v.vet_name):'',
+        alerta: v.next_date&&daysUntil(v.next_date)!==null&&daysUntil(v.next_date)<=30,
+        alertaTxt: v.next_date?(daysUntil(v.next_date)<0?'Refuerzo vencido':'Refuerzo en '+daysUntil(v.next_date)+'d'):'',
+        onclick: 'openVaccineForm(\''+v.id+'\')'
+      });
+    });
+
+    /* Registros de cuidado (health_records) */
+    var tabIconos={higiene:'🧼',ejercicio:'🏃',entrenamiento:'🎓',preventiva:'🛡'};
+    var tabBadge={higiene:'🧼 Higiene',ejercicio:'🏃 Ejercicio',entrenamiento:'🎓 Entrenamiento',preventiva:'🛡 Preventiva'};
+    var tabBadgeCss={higiene:'cb-higiene',ejercicio:'cb-ejercicio',entrenamiento:'cb-entrenamiento',preventiva:'cb-preventiva'};
+    RECORDS.forEach(function(r){
+      var tipo=r.record_type||'otro';
+      items.push({
+        fecha: r.record_date,
+        icono: tabIconos[tipo]||'📋',
+        titulo: escapeHtml(r.title),
+        badge: tabBadge[tipo]||tipo,
+        badgeCss: tabBadgeCss[tipo]||'cb-otro',
+        sub: r.notes?(r.notes.match(/^(\d+)min/)?'⏱ '+r.notes.match(/^(\d+)min/)[1]+'min':r.notes.substring(0,40)):'',
+        alerta: false,
+        alertaTxt: '',
+        onclick: 'openCareForm(\''+tipo+'\',\''+r.id+'\')'
+      });
+    });
+
+    /* Citas completadas de Agenda */
+    var apptIconos={veterinario:'🩺',peluqueria:'✂️',vacuna:'💉',desparasitacion:'🦠',entrenamiento:'🎓',paseo:'🐾',otro:'📅'};
+    var apptBadge={veterinario:'🩺 Veterinario',peluqueria:'✂️ Peluquería',vacuna:'💉 Vacuna',desparasitacion:'🦠 Desparasitación',entrenamiento:'🎓 Entrenamiento',paseo:'🐾 Paseo',otro:'📅 Cita'};
+    APPTS.filter(function(a){return a.completed;}).forEach(function(a){
+      items.push({
+        fecha: a.appointment_date,
+        icono: apptIconos[a.appointment_type]||'📅',
+        titulo: escapeHtml(a.title),
+        badge: apptBadge[a.appointment_type]||'📅 Cita',
+        badgeCss: 'cb-agenda',
+        sub: a.location?'📍 '+escapeHtml(a.location):'',
+        alerta: false,
+        alertaTxt: '',
+        onclick: 'openApptForm(\''+a.id+'\')'
+      });
+    });
+
+    /* Ordenar por fecha descendente (más reciente primero) */
+    items.sort(function(a,b){return b.fecha<a.fecha?-1:b.fecha>a.fecha?1:0;});
+
+    /* ── Agrupar por mes ── */
+    var grupos={};
+    items.forEach(function(item){
+      var mes=item.fecha?item.fecha.substring(0,7):'sin-fecha';
+      if(!grupos[mes])grupos[mes]=[];
+      grupos[mes].push(item);
+    });
+
+    var html=familiarCard+acciones;
+
+    if(items.length===0){
+      html+='<div class="care-empty"><span class="care-empty-icon">📋</span>'+
+        '<div class="care-empty-title">Sin movimientos aún</div>'+
+        '<div class="care-empty-sub">Las vacunas, registros y citas completadas de '+escapeHtml(pet.name)+' aparecerán aquí.</div></div>';
     } else {
-      html+=renderCareTab(careTab,pet);
+      var mesesOrdenados=Object.keys(grupos).sort(function(a,b){return b<a?-1:b>a?1:0;});
+      mesesOrdenados.forEach(function(mes){
+        var label=mes==='sin-fecha'?'Sin fecha':formatMesLabel(mes);
+        html+='<div style="font-size:11px;font-weight:800;color:var(--teal-l);text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin:16px 0 8px">'+label+'</div>';
+        grupos[mes].forEach(function(item){
+          html+=
+            '<div class="care-card" onclick="'+item.onclick+'">'+
+              '<div class="care-card-header">'+
+                '<span class="care-card-icon">'+item.icono+'</span>'+
+                '<span class="care-card-title">'+item.titulo+'</span>'+
+                '<span class="care-badge '+escapeAttr(item.badgeCss)+'">'+escapeHtml(item.badge)+'</span>'+
+                '<span class="care-card-date">'+formatDateShort(item.fecha)+'</span>'+
+              '</div>'+
+              (item.sub?'<div class="care-card-note">'+escapeHtml(item.sub)+'</div>':'')+
+              (item.alerta?'<div style="font-size:11px;color:#fbbf24;margin-top:4px">⚠️ '+item.alertaTxt+'</div>':'')+
+            '</div>';
+        });
+      });
     }
+
     document.getElementById('modal-module-content').innerHTML=html;
   }
 
-  window.switchCareTab=function(tab){careTab=tab;renderCuidadoContent();};
-
-  /* Tab Preventiva: Vacunas + registros de desparasitación/esterilización */
-  function renderPreventivaTab(pet){
-    var html='<button class="care-fab" onclick="openVaccineForm()">💉 Nueva vacuna</button>';
-    if(VACCINES.length===0){
-      html+='<div class="care-empty"><span class="care-empty-icon">💉</span><div class="care-empty-title">Sin registros preventivos</div><div class="care-empty-sub">Registra las vacunas y tratamientos preventivos de '+escapeHtml(pet.name)+'.</div></div>';
-    }else{
-      html+=VACCINES.map(function(v){
-        var days=daysUntil(v.next_date);var isAlert=days!==null&&days<=30;
-        var badgeText='',badgeClass='badge-none';
-        if(v.next_date){if(days<0){badgeText='Vencida';badgeClass='badge-alert';}else if(days===0){badgeText='Hoy';badgeClass='badge-alert';}else if(days<=30){badgeText='En '+days+'d';badgeClass='badge-alert';}else{badgeText='En '+days+'d';badgeClass='badge-ok';}}
-        return '<div class="vaccine-card'+(isAlert?' alert':v.next_date?' ok':'')+'\" onclick="openVaccineForm(\''+v.id+'\')">'+
-          '<div class="vaccine-header"><div class="vaccine-name">'+escapeHtml(v.vaccine_name)+'</div>'+
-          (v.next_date?'<span class="vaccine-badge '+badgeClass+'">'+badgeText+'</span>':'<span class="vaccine-badge badge-none">Sin próxima dosis</span>')+
-          '</div><div class="vaccine-meta"><span>📅 '+formatDateShort(v.applied_date)+'</span>'+(v.next_date?'<span>🔔 '+formatDateShort(v.next_date)+'</span>':'')+'</div>'+
-          (v.vet_name?'<div class="vaccine-vet">👨‍⚕️ '+escapeHtml(v.vet_name)+'</div>':'')+
-        '</div>';
-      }).join('');
-    }
-    return html;
+  /* helper: formatea "2026-03" → "Marzo 2026" */
+  function formatMesLabel(ym){
+    var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var parts=ym.split('-');
+    return meses[parseInt(parts[1],10)-1]+' '+parts[0];
   }
 
-  /* Tabs Higiene / Ejercicio / Entrenamiento */
-  function renderCareTab(tab, pet){
-    var tabRecords=RECORDS.filter(function(r){return r.record_type===tab;});
-    var tabIcons={higiene:'🧼',ejercicio:'🏃',entrenamiento:'🎓'};
-    var tabLabels={higiene:'higiene',ejercicio:'ejercicio',entrenamiento:'entrenamiento'};
-    var html='<button class="care-fab" onclick="openCareForm(\''+tab+'\')">➕ Nuevo registro</button>';
-    if(tabRecords.length===0){
-      html+='<div class="care-empty"><span class="care-empty-icon">'+(tabIcons[tab]||'📋')+'</span>'+
-        '<div class="care-empty-title">Sin registros de '+tabLabels[tab]+'</div>'+
-        '<div class="care-empty-sub">Empieza a llevar el historial de '+(tab==='higiene'?'higiene':'actividad')+' de '+escapeHtml(pet.name)+'.</div></div>';
-    }else{
-      html+=tabRecords.map(function(r){
-        var badgeCss=CARE_BADGE_CSS[r.description]||'cb-otro';
-        return '<div class="care-card" onclick="openCareForm(\''+tab+'\',\''+r.id+'\')">'+
-          '<div class="care-card-header">'+
-            '<span class="care-card-icon">'+(tabIcons[tab]||'📋')+'</span>'+
-            '<span class="care-card-title">'+escapeHtml(r.title)+'</span>'+
-            (r.description?'<span class="care-badge '+badgeCss+'">'+escapeHtml(r.description)+'</span>':'')+
-            '<span class="care-card-date">'+formatDateShort(r.record_date)+'</span>'+
-          '</div>'+
-          (r.vet_name?'<div class="care-card-note">'+escapeHtml(r.vet_name)+'</div>':'')+/* reutilizamos vet_name para duración */
-        '</div>';
-      }).join('');
-    }
-    return html;
-  }
+  /* switchCareTab eliminado — el historial es cronológico sin filtro por tab */
 
   /* Formulario de cuidado (Higiene / Ejercicio / Entrenamiento) */
   window.openCareForm=function(tab,id){
@@ -1040,7 +1141,11 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     document.getElementById('care-form-title').textContent=isEdit?'Editar registro':'Nuevo registro — '+tabTitles[tab];
     document.getElementById('btn-save-care-text').textContent=isEdit?'Guardar cambios':'Guardar registro';
     document.getElementById('btn-delete-care').style.display=isEdit?'':'none';
-    if(isEdit){var r=RECORDS.find(function(x){return x.id===careEditId;});if(r){if(r.description)sel.value=r.description;document.getElementById('care-title').value=r.title||'';document.getElementById('care-date').value=r.record_date||todayISO();document.getElementById('care-duration').value=r.vet_name||'';/* vet_name reutilizado para duración */document.getElementById('care-notes').value=r.notes||'';}}
+    if(isEdit){var r=RECORDS.find(function(x){return x.id===careEditId;});if(r){if(r.description)sel.value=r.description;document.getElementById('care-title').value=r.title||'';document.getElementById('care-date').value=r.record_date||todayISO();
+      /* leer duración desde notes si empieza con NNmin */
+      var notesVal=r.notes||'';var durMatch=notesVal.match(/^(\d+)min(?:\s—\s(.*))?$/);
+      document.getElementById('care-duration').value=durMatch?durMatch[1]:'';
+      document.getElementById('care-notes').value=durMatch?(durMatch[2]||''):notesVal;}}
     document.getElementById('modal-care-form').classList.remove('hidden');
     setTimeout(function(){document.getElementById('care-title').focus();},300);
   };
@@ -1050,7 +1155,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     var date=document.getElementById('care-date').value;
     if(!title||!date){showCareMsg('Título y fecha son obligatorios.','error');return;}
     setFormLoading('care',true);
-    var data={record_type:curCareTab,title,description:document.getElementById('care-subtype').value||null,record_date:date,vet_name:document.getElementById('care-duration').value||null,/* reutilizamos vet_name para duración */notes:document.getElementById('care-notes').value.trim()||null};
+    var duracion=document.getElementById('care-duration').value;
+    var notasBase=document.getElementById('care-notes').value.trim();
+    var notasFinal=duracion?(duracion+'min'+(notasBase?' — '+notasBase:'')):notasBase||null;
+    var data={record_type:curCareTab,title,description:document.getElementById('care-subtype').value||null,record_date:date,notes:notasFinal};
     try{var res=careEditId?await sb.from('health_records').update(data).eq('id',careEditId):await sb.from('health_records').insert({...data,user_id:currentUser.id,pet_id:curPetId});if(res.error){showCareMsg('Error: '+res.error.message,'error');setFormLoading('care',false);return;}document.getElementById('modal-care-form').classList.add('hidden');setFormLoading('care',false);await loadRecords(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showCareMsg('Error de conexión.','error');setFormLoading('care',false);}
   };
   window.deleteCare=async function(){if(!careEditId)return;var r=RECORDS.find(function(x){return x.id===careEditId;});if(!confirm('¿Eliminar el registro "'+r.title+'"?'))return;setFormLoading('care',true);try{var res=await sb.from('health_records').delete().eq('id',careEditId);if(res.error){showCareMsg('Error: '+res.error.message,'error');setFormLoading('care',false);return;}document.getElementById('modal-care-form').classList.add('hidden');setFormLoading('care',false);await loadRecords(curPetId);if(!document.getElementById('modal-module').classList.contains('hidden'))renderCuidadoContent();}catch(e){showCareMsg('Error de conexión.','error');setFormLoading('care',false);}};
@@ -1088,7 +1196,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       '</div>'+
       '<div class="agenda-tabs"><button class="agenda-tab'+(agendaView==='list'?' active':'')+'\" onclick="switchAgendaView(\'list\')">📋 Lista</button>'+
       '<button class="agenda-tab'+(agendaView==='calendar'?' active':'')+'\" onclick="switchAgendaView(\'calendar\')">📅 Calendario</button></div>'+
-      '<button class="agenda-fab" onclick="openApptForm()">➕ Nueva cita</button>';
+      '<div style="display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap">'+
+        '<button class="agenda-fab" style="margin-bottom:0" onclick="openApptForm()">➕ Nueva cita</button>'+
+        '<button class="agenda-fab" style="margin-bottom:0;background:var(--glass2);color:var(--teal-l);box-shadow:none;border:1.5px solid var(--border)" onclick="closeModule();setTimeout(function(){openModule(\'cuidado\');},100)">📋 Ver historial</button>'+
+      '</div>';
     html+=agendaView==='list'?renderAgendaList():renderAgendaCalendar();
     document.getElementById('modal-module-content').innerHTML=html;
   }
@@ -1315,7 +1426,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     var modal=document.getElementById('modal-module');
     var towerName=(MODULES.find(function(m){return m.id===id;})||{}).name||id;
     modal.setAttribute('aria-label','Torre: '+towerName);
-    if(id==='cuidado'){careTab='preventiva';document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderCuidadoContent();}
+    if(id==='cuidado'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderCuidadoContent();}
     else if(id==='ia'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderIAContent();}
     else if(id==='agenda'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderAgendaContent();}
     else if(id==='diario'){document.getElementById('modal-module-content').innerHTML='';modal.classList.remove('hidden');renderDiaryTimeline();}
@@ -1373,7 +1484,399 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
   function escapeHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function escapeAttr(str){return String(str||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
 
+  /* ══════════════════════════════════════════════════════════════
+     RED DE APOYO — WhatsApp
+     ══════════════════════════════════════════════════════════════ */
+  var SUPPORT=[];
+  var contactoEditId=null;
+  var redApoyoTab='contactos';
+
+  /* Mensajes predefinidos — guardados en localStorage */
+  var MSG_DEFAULTS={
+    citas:   'Hola {nombre}, te informo que {mascota} tiene una cita programada el {fecha}. Por favor confirma si puedes acompañar. 🐾',
+    cuidado: 'Hola {nombre}, es momento del cuidado de {mascota}: {detalle}. ¿Puedes ayudar? 🐾',
+    nutricion:'Hola {nombre}, {mascota} necesita su ración de alimento. Detalles: {detalle}. 🐾',
+    sos:     '🆘 EMERGENCIA — {mascota} necesita ayuda urgente. Por favor contáctame de inmediato. {nombre}'
+  };
+
+  function getMensajes(){
+    try{var s=localStorage.getItem('peludos_wa_mensajes');return s?JSON.parse(s):MSG_DEFAULTS;}catch(e){return MSG_DEFAULTS;}
+  }
+  function saveMensajes(obj){try{localStorage.setItem('peludos_wa_mensajes',JSON.stringify(obj));}catch(e){}}
+
+  async function loadSupport(petId){
+    try{var res=await sb.from('support_network').select('*').eq('pet_id',petId).order('created_at',{ascending:true});SUPPORT=res.error?[]:(res.data||[]);}catch(e){SUPPORT=[];}
+  }
+
+  window.openRedApoyo=async function(){
+    if(!curPetId){alert('Selecciona una mascota primero.');return;}
+    await loadSupport(curPetId);
+    redApoyoTab='contactos';
+    document.getElementById('modal-red-apoyo').classList.remove('hidden');
+    renderRedApoyo();
+  };
+  window.closeRedApoyo=function(e){if(!e||e.target===document.getElementById('modal-red-apoyo'))document.getElementById('modal-red-apoyo').classList.add('hidden');};
+
+  window.switchRedApoyoTab=function(tab){
+    redApoyoTab=tab;
+    document.getElementById('tab-btn-contactos').classList.toggle('active',tab==='contactos');
+    document.getElementById('tab-btn-mensajes').classList.toggle('active',tab==='mensajes');
+    renderRedApoyo();
+  };
+
+  var ROLE_LABELS={familiar:'👨‍👩‍👧 Familiar',cuidador:'🏠 Cuidador',paseador:'🐕 Paseador',veterinario:'🩺 Veterinario',otro:'👤 Otro'};
+
+  function renderRedApoyo(){
+    var pet=getPetById(curPetId);
+    if(!pet)return;
+    var el=document.getElementById('red-apoyo-content');
+    if(redApoyoTab==='contactos'){
+      var html='<button class="care-fab" onclick="openContactoForm()">➕ Nuevo contacto</button>';
+      if(SUPPORT.length===0){
+        html+='<div class="care-empty"><span class="care-empty-icon">👥</span><div class="care-empty-title">Sin contactos aún</div><div class="care-empty-sub">Agrega personas de confianza que recibirán alertas de '+escapeHtml(pet.name)+'.</div></div>';
+      }else{
+        html+=SUPPORT.map(function(c){
+          var alertas=[];
+          if(c.alert_citas)alertas.push('📅');
+          if(c.alert_cuidado)alertas.push('🏥');
+          if(c.alert_nutricion)alertas.push('🥗');
+          if(c.alert_sos)alertas.push('🆘');
+          return '<div class="care-card">'+
+            '<div class="care-card-header">'+
+              '<span class="care-card-icon">'+(ROLE_LABELS[c.role]||'👤').split(' ')[0]+'</span>'+
+              '<div style="flex:1"><div class="care-card-title">'+escapeHtml(c.name)+'</div>'+
+              '<div style="font-size:11px;color:var(--muted)">'+escapeHtml(ROLE_LABELS[c.role]||c.role)+' · '+escapeHtml(c.phone)+'</div>'+
+              (alertas.length?'<div style="font-size:12px;margin-top:3px">'+alertas.join(' ')+'</div>':'')+'</div>'+
+              '<div style="display:flex;flex-direction:column;gap:6px">'+
+                '<button onclick="openContactoForm(\''+c.id+'\')" style="padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--sub);font-size:11px;font-weight:700;cursor:pointer">✏ Editar</button>'+
+                '<a href="'+buildWaLink(c,'sos',pet)+'" target="_blank" style="padding:5px 10px;border-radius:8px;border:none;background:rgba(34,197,94,.2);color:#86efac;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center">💬 WA</a>'+
+                '<a href="'+buildSmsLink(c,'sos',pet)+'" style="padding:5px 10px;border-radius:8px;border:none;background:rgba(96,165,250,.2);color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center">📱 SMS</a>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+      }
+      /* Botones de alerta masiva */
+      if(SUPPORT.length>0){
+        html+='<div style="margin-top:1.25rem"><div style="font-size:12px;font-weight:800;color:var(--teal-l);margin-bottom:8px">Enviar alerta a contactos autorizados</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+            '<button onclick="enviarAlerta(\'citas\')" style="padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:12px;font-weight:700;cursor:pointer">📅 Citas</button>'+
+            '<button onclick="enviarAlerta(\'cuidado\')" style="padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:12px;font-weight:700;cursor:pointer">🏥 Cuidado</button>'+
+            '<button onclick="enviarAlerta(\'nutricion\')" style="padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--glass);color:var(--text);font-size:12px;font-weight:700;cursor:pointer">🥗 Nutrición</button>'+
+            '<button onclick="enviarAlerta(\'sos\')" style="padding:8px 14px;border-radius:10px;border:none;background:rgba(239,68,68,.2);color:#fca5a5;font-size:12px;font-weight:800;cursor:pointer">🆘 SOS</button>'+
+          '</div></div>';
+      }
+      el.innerHTML=html;
+    } else {
+      /* Tab Mensajes */
+      var msgs=getMensajes();
+      var tipos=[
+        {key:'citas',label:'📅 Alertas de Citas'},
+        {key:'cuidado',label:'🏥 Alertas de Cuidado'},
+        {key:'nutricion',label:'🥗 Alertas de Nutrición'},
+        {key:'sos',label:'🆘 Emergencia SOS'}
+      ];
+      var html='<div style="font-size:12px;color:var(--sub);margin-bottom:1rem;line-height:1.5">'+
+        'Variables disponibles: <code style="background:var(--glass2);padding:1px 5px;border-radius:4px">{nombre}</code> '+
+        '<code style="background:var(--glass2);padding:1px 5px;border-radius:4px">{mascota}</code> '+
+        '<code style="background:var(--glass2);padding:1px 5px;border-radius:4px">{fecha}</code> '+
+        '<code style="background:var(--glass2);padding:1px 5px;border-radius:4px">{detalle}</code></div>';
+      tipos.forEach(function(t){
+        html+='<div class="pet-form-group"><label class="pet-form-label">'+t.label+'</label>'+
+          '<textarea class="pet-form-textarea" id="msg-'+t.key+'" style="min-height:80px;font-size:12px">'+escapeHtml(msgs[t.key]||MSG_DEFAULTS[t.key])+'</textarea></div>';
+      });
+      html+='<button class="btn-primary" onclick="guardarMensajes()">💾 Guardar mensajes</button>';
+      el.innerHTML=html;
+    }
+  }
+
+  function buildWaLink(contacto, tipo, pet){
+    var msgs=getMensajes();
+    var plantilla=msgs[tipo]||MSG_DEFAULTS[tipo]||'';
+    var activePet=pet||getPetById(curPetId)||{};
+    var msg=plantilla
+      .replace(/{nombre}/g,contacto.name)
+      .replace(/{mascota}/g,activePet.name||'la mascota')
+      .replace(/{fecha}/g,new Date().toLocaleDateString('es-CO'))
+      .replace(/{detalle}/g,'');
+    return 'https://wa.me/'+contacto.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  }
+
+  function buildSmsLink(contacto, tipo, pet){
+    var msgs=getMensajes();
+    var plantilla=msgs[tipo]||MSG_DEFAULTS[tipo]||'';
+    var activePet=pet||getPetById(curPetId)||{};
+    var msg=plantilla
+      .replace(/{nombre}/g,contacto.name)
+      .replace(/{mascota}/g,activePet.name||'la mascota')
+      .replace(/{fecha}/g,new Date().toLocaleDateString('es-CO'))
+      .replace(/{detalle}/g,'');
+    return 'sms:+'+contacto.phone.replace(/\D/g,'')+'?body='+encodeURIComponent(msg);
+  }
+
+  window.enviarAlerta=function(tipo){
+    var pet=getPetById(curPetId);if(!pet)return;
+    var campo={citas:'alert_citas',cuidado:'alert_cuidado',nutricion:'alert_nutricion',sos:'alert_sos'}[tipo];
+    var autorizados=SUPPORT.filter(function(c){return c[campo];});
+    if(autorizados.length===0){alert('Ningún contacto tiene autorizada esta alerta.\nEdita los contactos para habilitarla.');return;}
+    autorizados.forEach(function(c){
+      var url=buildWaLink(c,tipo,pet);
+      window.open(url,'_blank');
+    });
+  };
+
+  window.guardarMensajes=function(){
+    var msgs={};
+    ['citas','cuidado','nutricion','sos'].forEach(function(k){
+      var el=document.getElementById('msg-'+k);
+      if(el)msgs[k]=el.value.trim()||MSG_DEFAULTS[k];
+    });
+    saveMensajes(msgs);
+    var el=document.getElementById('red-apoyo-msg');
+    el.textContent='✅ Mensajes guardados.';el.className='auth-msg ok';
+    setTimeout(function(){el.textContent='';el.className='auth-msg';},2000);
+  };
+
+  /* Formulario contacto */
+  window.openContactoForm=function(id){
+    contactoEditId=id||null;var isEdit=!!contactoEditId;
+    document.getElementById('c-name').value='';
+    document.getElementById('c-phone').value='';
+    document.getElementById('c-role').value='familiar';
+    document.getElementById('c-alert-citas').checked=false;
+    document.getElementById('c-alert-cuidado').checked=false;
+    document.getElementById('c-alert-nutricion').checked=false;
+    document.getElementById('c-alert-sos').checked=false;
+    document.getElementById('contacto-form-msg').className='auth-msg';
+    document.getElementById('contacto-form-title').textContent=isEdit?'Editar contacto':'Nuevo contacto';
+    document.getElementById('btn-save-contacto-text').textContent=isEdit?'Guardar cambios':'Guardar contacto';
+    document.getElementById('btn-delete-contacto').style.display=isEdit?'':'none';
+    if(isEdit){var c=SUPPORT.find(function(x){return x.id===contactoEditId;});if(c){
+      document.getElementById('c-name').value=c.name||'';
+      document.getElementById('c-phone').value=c.phone||'';
+      document.getElementById('c-role').value=c.role||'familiar';
+      document.getElementById('c-alert-citas').checked=!!c.alert_citas;
+      document.getElementById('c-alert-cuidado').checked=!!c.alert_cuidado;
+      document.getElementById('c-alert-nutricion').checked=!!c.alert_nutricion;
+      document.getElementById('c-alert-sos').checked=!!c.alert_sos;
+    }}
+    document.getElementById('modal-contacto-form').classList.remove('hidden');
+    setTimeout(function(){document.getElementById('c-name').focus();},300);
+  };
+  window.closeContactoForm=function(e){if(!e||e.target===document.getElementById('modal-contacto-form'))document.getElementById('modal-contacto-form').classList.add('hidden');};
+
+  window.saveContacto=async function(){
+    var name=document.getElementById('c-name').value.trim();
+    var phone=document.getElementById('c-phone').value.trim().replace(/\D/g,'');
+    if(!name||!phone){document.getElementById('contacto-form-msg').textContent='Nombre y teléfono son obligatorios.';document.getElementById('contacto-form-msg').className='auth-msg error';return;}
+    setFormLoading('contacto',true);
+    var data={name,phone,role:document.getElementById('c-role').value,alert_citas:document.getElementById('c-alert-citas').checked,alert_cuidado:document.getElementById('c-alert-cuidado').checked,alert_nutricion:document.getElementById('c-alert-nutricion').checked,alert_sos:document.getElementById('c-alert-sos').checked};
+    try{
+      var res=contactoEditId?await sb.from('support_network').update(data).eq('id',contactoEditId):await sb.from('support_network').insert({...data,user_id:currentUser.id,pet_id:curPetId});
+      if(res.error){document.getElementById('contacto-form-msg').textContent='Error: '+res.error.message;document.getElementById('contacto-form-msg').className='auth-msg error';setFormLoading('contacto',false);return;}
+      document.getElementById('modal-contacto-form').classList.add('hidden');
+      setFormLoading('contacto',false);
+      await loadSupport(curPetId);
+      renderRedApoyo();
+    }catch(e){document.getElementById('contacto-form-msg').textContent='Error de conexión.';document.getElementById('contacto-form-msg').className='auth-msg error';setFormLoading('contacto',false);}
+  };
+
+  window.deleteContacto=async function(){
+    if(!contactoEditId)return;
+    var c=SUPPORT.find(function(x){return x.id===contactoEditId;});
+    if(!confirm('¿Eliminar a '+c.name+' de la Red de Apoyo?'))return;
+    setFormLoading('contacto',true);
+    try{
+      var res=await sb.from('support_network').delete().eq('id',contactoEditId);
+      if(res.error){document.getElementById('contacto-form-msg').textContent='Error: '+res.error.message;document.getElementById('contacto-form-msg').className='auth-msg error';setFormLoading('contacto',false);return;}
+      document.getElementById('modal-contacto-form').classList.add('hidden');
+      setFormLoading('contacto',false);
+      await loadSupport(curPetId);
+      renderRedApoyo();
+    }catch(e){document.getElementById('contacto-form-msg').textContent='Error de conexión.';document.getElementById('contacto-form-msg').className='auth-msg error';setFormLoading('contacto',false);}
+  };
+
+  /* ─── MÓDULO QR ─── */
+  var qrLeafletMap=null;
+  var QR_SCANS=[];
+  var QR_LAST_SEEN_KEY='peludos_qr_last_seen';
+
+  /* Badge: cuántos escaneos nuevos hay desde la última visita */
+  function updateQRBadge(){
+    if(!curPetId)return;
+    var lastSeen=parseInt(localStorage.getItem(QR_LAST_SEEN_KEY+'_'+curPetId)||'0');
+    var nuevos=QR_SCANS.filter(function(s){return new Date(s.scanned_at).getTime()>lastSeen;}).length;
+    var badge=document.getElementById('qr-badge');
+    if(badge){
+      if(nuevos>0){badge.textContent=nuevos>9?'9+':String(nuevos);badge.style.display='block';}
+      else{badge.style.display='none';}
+    }
+  }
+
+  /* Cargar escaneos de Supabase */
+  async function loadQRScans(petId){
+    try{
+      var res=await sb.from('qr_scans').select('*').eq('pet_id',petId).order('scanned_at',{ascending:false});
+      QR_SCANS=res.data||[];
+    }catch(e){QR_SCANS=[];}
+  }
+
+  window.openQR=async function(){
+    if(!curPetId){alert('Selecciona una mascota primero.');return;}
+    await loadQRScans(curPetId);
+    updateQRBadge();
+    document.getElementById('modal-qr').classList.remove('hidden');
+    switchQRTab('qr');
+  };
+
+  window.closeQR=function(e){
+    if(!e||e.target===document.getElementById('modal-qr')){
+      document.getElementById('modal-qr').classList.add('hidden');
+      if(qrLeafletMap){qrLeafletMap.remove();qrLeafletMap=null;}
+    }
+  };
+
+  window.switchQRTab=function(tab){
+    ['qr','escaneos','mapa'].forEach(function(t){
+      var btn=document.getElementById('qr-tab-btn-'+t);
+      var panel=document.getElementById('qr-tab-'+t);
+      if(btn)btn.classList.toggle('active',t===tab);
+      if(panel)panel.style.display=(t===tab?'block':'none');
+    });
+    if(tab==='qr')renderQRCode();
+    if(tab==='escaneos')renderQREscaneos();
+    if(tab==='mapa')renderQRMapa();
+  };
+
+  function renderQRCode(){
+    var pet=getPetById(curPetId);if(!pet)return;
+    var el=document.getElementById('qr-canvas-wrap');
+    if(!el)return;
+    el.innerHTML='';
+    /* URL pública — ajustar usuario GitHub */
+    var baseUrl=window.location.origin+window.location.pathname.replace(/[^/]*$/,'')+'pet-public.html';
+    var url=baseUrl+'?id='+curPetId;
+    document.getElementById('qr-url-text').textContent=url;
+    try{
+      var qrDiv=document.createElement('div');
+      new QRCode(qrDiv,{text:url,width:200,height:200,colorDark:'#0d2b28',colorLight:'#e0faf8',correctLevel:QRCode.CorrectLevel.M});
+      /* qrcodejs genera img o canvas según el browser */
+      setTimeout(function(){
+        var canvas=qrDiv.querySelector('canvas')||qrDiv.querySelector('img');
+        if(!canvas){el.innerHTML='<div style="color:var(--coral);font-size:13px">Error generando QR</div>';return;}
+        canvas.style.borderRadius='12px';
+        el.appendChild(canvas);
+        document.getElementById('qr-dl-btn').onclick=function(){
+          var a=document.createElement('a');
+          a.download='qr-'+pet.name+'.png';
+          if(canvas.tagName==='CANVAS'){a.href=canvas.toDataURL();}
+          else{a.href=canvas.src;}
+          a.click();
+        };
+      },200);
+    }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:13px">qrcode.js no cargó. Verifica conexión.</div>';}
+  }
+
+  function renderQREscaneos(){
+    var el=document.getElementById('qr-escaneos-list');if(!el)return;
+    /* Marcar como vistos */
+    localStorage.setItem(QR_LAST_SEEN_KEY+'_'+curPetId,String(Date.now()));
+    updateQRBadge();
+    if(QR_SCANS.length===0){
+      el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--sub)"><div style="font-size:32px;margin-bottom:8px">📭</div><div>Sin escaneos aún.<br>Cuando alguien escanee el collar aparecerá aquí.</div></div>';
+      return;
+    }
+    el.innerHTML=QR_SCANS.map(function(s){
+      var d=new Date(s.scanned_at);
+      var fecha=d.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+      var hora=d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+      var gps='';
+      if(s.latitude&&s.longitude){
+        var prec=s.accuracy?Math.round(s.accuracy)+'m':'?';
+        var nivel=s.accuracy<50?'Alta':s.accuracy<150?'Media':'Baja';
+        gps='<span style="background:rgba(64,224,208,.15);color:var(--teal-l);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700">📍 GPS '+nivel+' ±'+prec+'</span>';
+      }else{
+        gps='<span style="background:rgba(255,255,255,.07);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:20px">sin ubicación</span>';
+      }
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">'+
+        '<div><div style="font-size:13px;font-weight:700">'+fecha+' · '+hora+'</div>'+
+        '<div style="margin-top:4px">'+gps+'</div></div>'+
+        '</div>';
+    }).join('');
+  }
+
+  function renderQRMapa(){
+    var conCoords=QR_SCANS.filter(function(s){return s.latitude&&s.longitude;});
+    var el=document.getElementById('qr-mapa-wrap');if(!el)return;
+    if(conCoords.length===0){
+      el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--sub)"><div style="font-size:32px;margin-bottom:8px">🗺</div><div>Sin escaneos con ubicación aún.</div></div>';
+      return;
+    }
+    el.innerHTML='<div id="leaflet-map" style="height:320px;border-radius:16px;overflow:hidden"></div>';
+    setTimeout(function(){
+      if(qrLeafletMap){qrLeafletMap.remove();qrLeafletMap=null;}
+      try{
+        var map=L.map('leaflet-map');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+        var bounds=[];
+        conCoords.forEach(function(s){
+          var d=new Date(s.scanned_at);
+          var label=d.toLocaleDateString('es-CO',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+          var prec=s.accuracy?'±'+Math.round(s.accuracy)+'m':'';
+          var marker=L.marker([s.latitude,s.longitude]).addTo(map);
+          marker.bindPopup('<b>'+label+'</b>'+(prec?'<br>Precisión: '+prec:''));
+          bounds.push([s.latitude,s.longitude]);
+        });
+        if(bounds.length===1){map.setView(bounds[0],15);}
+        else{map.fitBounds(bounds,{padding:[30,30]});}
+        qrLeafletMap=map;
+      }catch(e){el.innerHTML='<div style="color:var(--coral);padding:1rem">Error cargando mapa. Verifica conexión.</div>';}
+    },100);
+  }
+
+  /* Actualizar badge al cargar mascotas */
+  var _origLoadPets=window.loadPets;
+  /* También actualizar badge cuando cambia mascota activa */
+  document.addEventListener('peludos:petChanged',async function(){
+    if(curPetId){await loadQRScans(curPetId);updateQRBadge();}
+  });
+
 })();
 </script>
+
+<!-- MODAL QR -->
+<div class="modal-overlay hidden" id="modal-qr" onclick="closeQR(event)" role="dialog" aria-modal="true" aria-label="QR y Localización">
+  <div class="modal-sheet">
+    <button class="modal-close-btn" onclick="closeQR()" aria-label="Cerrar">✕</button>
+    <div class="modal-title">🐾 QR · Localización</div>
+    <div style="display:flex;gap:6px;margin-bottom:1rem">
+      <button class="care-tab active" id="qr-tab-btn-qr" onclick="switchQRTab('qr')">🔲 QR</button>
+      <button class="care-tab" id="qr-tab-btn-escaneos" onclick="switchQRTab('escaneos')">📋 Escaneos</button>
+      <button class="care-tab" id="qr-tab-btn-mapa" onclick="switchQRTab('mapa')">🗺 Mapa</button>
+    </div>
+
+    <!-- Tab QR -->
+    <div id="qr-tab-qr">
+      <div style="text-align:center;margin-bottom:1rem">
+        <div style="font-size:13px;color:var(--sub);margin-bottom:12px">Imprime o muestra este QR en el collar de tu mascota.<br>Quien lo escanee verá sus datos y podrá compartir su ubicación.</div>
+        <div id="qr-canvas-wrap" style="display:inline-block;padding:12px;background:var(--glass);border:1.5px solid var(--border);border-radius:16px;margin-bottom:12px"></div>
+        <div style="font-size:10px;color:var(--muted);word-break:break-all;margin-bottom:12px;padding:0 1rem" id="qr-url-text"></div>
+        <button id="qr-dl-btn" class="btn-primary" style="font-size:13px;padding:10px 24px">⬇ Descargar imagen</button>
+      </div>
+    </div>
+
+    <!-- Tab Escaneos -->
+    <div id="qr-tab-escaneos" style="display:none">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:10px">Historial de veces que escanearon el collar de tu mascota.</div>
+      <div id="qr-escaneos-list"></div>
+    </div>
+
+    <!-- Tab Mapa -->
+    <div id="qr-tab-mapa" style="display:none">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:10px">Ubicaciones de escaneos con GPS compartido.</div>
+      <div id="qr-mapa-wrap"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

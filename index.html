@@ -1773,6 +1773,7 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     var url=baseUrl+'?id='+curPetId;
     document.getElementById('qr-url-text').textContent=url;
 
+    el.innerHTML='';
     /* qrcodejs necesita el div en el DOM visible para renderizar */
     var qrDiv=document.createElement('div');
     qrDiv.style.cssText='width:200px;height:200px';

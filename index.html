@@ -1726,6 +1726,9 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     await loadQRScans(curPetId);
     updateQRBadge();
     document.getElementById('modal-qr').classList.remove('hidden');
+    /* Pre-llenar usuario GitHub guardado */
+    var ghInput=document.getElementById('qr-gh-user');
+    if(ghInput)ghInput.value=localStorage.getItem('peludos_gh_user')||'hfhoyos';
     switchQRTab('qr');
   };
 
@@ -1753,19 +1756,39 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
     var el=document.getElementById('qr-canvas-wrap');
     if(!el)return;
     el.innerHTML='';
-    /* URL pública — ajustar usuario GitHub */
-    var baseUrl=window.location.origin+window.location.pathname.replace(/[^/]*$/,'')+'pet-public.html';
+
+    /* URL pública: si estamos en GitHub Pages usar esa, si no usar la actual */
+    var origin=window.location.origin;
+    var path=window.location.pathname.replace(/[^/]*$/,'');
+    /* Si es localhost, construir URL de GitHub Pages a partir del repo conocido */
+    var isLocal=origin.indexOf('127.0.0.1')>=0||origin.indexOf('localhost')>=0;
+    var baseUrl;
+    if(isLocal){
+      /* Intentar leer de localStorage si el usuario configuró su usuario GitHub */
+      var ghUser=localStorage.getItem('peludos_gh_user')||'TU_USUARIO';
+      baseUrl='https://'+ghUser+'.github.io/pet-public.html';
+    }else{
+      baseUrl=origin+path+'pet-public.html';
+    }
     var url=baseUrl+'?id='+curPetId;
     document.getElementById('qr-url-text').textContent=url;
+
+    /* qrcodejs necesita el div en el DOM visible para renderizar */
+    var qrDiv=document.createElement('div');
+    qrDiv.style.cssText='width:200px;height:200px';
+    el.appendChild(qrDiv);
+
     try{
-      var qrDiv=document.createElement('div');
       new QRCode(qrDiv,{text:url,width:200,height:200,colorDark:'#0d2b28',colorLight:'#e0faf8',correctLevel:QRCode.CorrectLevel.M});
-      /* qrcodejs genera img o canvas según el browser */
       setTimeout(function(){
+        /* El canvas/img ya está dentro de qrDiv que está en el DOM */
         var canvas=qrDiv.querySelector('canvas')||qrDiv.querySelector('img');
         if(!canvas){el.innerHTML='<div style="color:var(--coral);font-size:13px">Error generando QR</div>';return;}
-        canvas.style.borderRadius='12px';
-        el.appendChild(canvas);
+        canvas.style.cssText='border-radius:12px;display:block';
+        if(isLocal){
+          var warn=document.getElementById('qr-local-warn');
+          if(warn)warn.style.display='block';
+        }
         document.getElementById('qr-dl-btn').onclick=function(){
           var a=document.createElement('a');
           a.download='qr-'+pet.name+'.png';
@@ -1773,8 +1796,10 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
           else{a.href=canvas.src;}
           a.click();
         };
-      },200);
-    }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:13px">qrcode.js no cargó. Verifica conexión.</div>';}
+      },300);
+    }catch(e){
+      el.innerHTML='<div style="color:var(--coral);font-size:13px">qrcode.js no cargó. Verifica conexión.</div>';
+    }
   }
 
   function renderQREscaneos(){
@@ -1855,11 +1880,18 @@ body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-hei
       <button class="care-tab" id="qr-tab-btn-mapa" onclick="switchQRTab('mapa')">🗺 Mapa</button>
     </div>
 
-    <!-- Tab QR -->
+      <!-- Tab QR -->
     <div id="qr-tab-qr">
       <div style="text-align:center;margin-bottom:1rem">
         <div style="font-size:13px;color:var(--sub);margin-bottom:12px">Imprime o muestra este QR en el collar de tu mascota.<br>Quien lo escanee verá sus datos y podrá compartir su ubicación.</div>
+        <!-- Config usuario GitHub (solo relevante en localhost) -->
+        <div id="qr-gh-config" style="margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--muted)">github.io usuario:</span>
+          <input id="qr-gh-user" placeholder="hfhoyos" style="background:var(--glass);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:4px 10px;width:120px" oninput="localStorage.setItem('peludos_gh_user',this.value.trim());renderQRCode()">
+          <span style="font-size:11px;color:var(--muted)">.github.io</span>
+        </div>
         <div id="qr-canvas-wrap" style="display:inline-block;padding:12px;background:var(--glass);border:1.5px solid var(--border);border-radius:16px;margin-bottom:12px"></div>
+        <div id="qr-local-warn" style="display:none;font-size:11px;color:var(--coral);margin-bottom:8px;padding:0 1rem">⚠️ En localhost el QR apunta a GitHub Pages. Configura tu usuario arriba.</div>
         <div style="font-size:10px;color:var(--muted);word-break:break-all;margin-bottom:12px;padding:0 1rem" id="qr-url-text"></div>
         <button id="qr-dl-btn" class="btn-primary" style="font-size:13px;padding:10px 24px">⬇ Descargar imagen</button>
       </div>
